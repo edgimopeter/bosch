@@ -135,7 +135,7 @@ class Bosch {
         //cycle through supplied fields
         foreach ($fields as $k => $v) {
 
-            $new_field = new Field( $fields[$k] );
+            $new_field = new Bosch_Field( $fields[$k] );
 
             //check if the var has already been used
             if ( array_key_exists($fields[$k]['var'], $this->fields) ){
@@ -168,7 +168,7 @@ class Bosch {
 
         foreach ($groups as $k => $v) {
 
-            $new_group = new Group( $groups[$k] );
+            $new_group = new Bosch_Group( $groups[$k] );
 
             //if no name supplied, set it to a blank string
             if ( !isset($groups[$k]['name']) ){
@@ -516,12 +516,11 @@ class Bosch {
      * @todo implement local version of GUMP
      */
     public function process(){
-        echo 'ttt';
         //don't run if the form hasn't been submitted
         if ( !$this->has_been_submitted() )
             return;
 
-        $validator = new Bosch_Validator();
+        $validator = new Bosch_Validator( $this->fields );
         $_POST = $validator->sanitize($_POST);
 
         foreach ($_POST['form'] as $k => $v) {
@@ -541,9 +540,6 @@ class Bosch {
                 $this->fields[$k]->value = $v;
             }
         }
-
-        var_dump($validate);
-        var_dump($filter);
 
         if ( !empty($validate) )
             $validator->validation_rules($validate);
@@ -657,98 +653,6 @@ class Bosch {
         }
 
         return $text;
-    }
-}
-
-/**
- * Field
- *
- * 
- */
-
-class Field{
-
-    public $var;
-    public $name;
-    public $type;
-    public $options;
-    public $desc;
-    public $default;
-    public $validate;
-    public $filter;
-    public $size;
-
-    function __construct( $properties = array() ){
-
-        foreach ($properties as $k => $v) {
-            $this->$k = $v;
-        }        
-    }
-
-    /**
-     * Validate a field
-     *
-     * @return string 'valid' if valid, error string if not
-     */
-    public function validate_field(){
-
-        //validate the var property, must not be blank and not contain spaces
-        if ( !isset($this->var) || $this->var == '' || empty($this->var) || preg_match('/\s/', $this->var) ){
-           return 'Valid <code>var</code> property required for field with <code>name => '.$this->name.'</code>';
-        }
-
-        //Check if a valid $options array is supplied when it's required by the field type (select, radio, etc)
-        if (
-            in_array($this->type, array('checkbox', 'checkbox-inline', 'select', 'radio', 'radio-inline') ) 
-            && (
-                !isset($this->options) ||
-                empty($this->options) ||
-                !is_array($this->options)
-                ) 
-            ){
-
-           return 'Valid array required for <code>options</code> property in field <code>'.$this->var.'</code><br />Currently set to <code>'.$this->options.'</code>';
-        }
-
-        return 'valid';
-
-    }
-}
-
-/**
- * Group
- *
- * 
- */
-class Group{
-
-    public $name;
-    public $desc;
-    public $fields;
-    public $html_before;
-    public $html_after;
-
-    function __construct( $properties = array() ){
-
-        foreach ($properties as $k => $v) {
-            $this->$k = $v;
-        }        
-    }
-
-    /**
-     * Validate a group
-     *
-     * @return string 'valid' if valid, error string if not
-     */
-    public function validate_group(){
-
-        $fields = explode('|', $this->fields);
-
-        //group must have at least one field associated with it
-        if ( empty($fields) || $fields == false || $fields[0] == '' || empty($fields[0]) ){
-            return 'No <code>fields</code> property set for group <code>'.$this->name.'</code>';
-        }
-        return 'valid';
     }
 }
 

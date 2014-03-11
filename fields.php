@@ -73,8 +73,7 @@ array(
 'desc'        => 'Please enter your name',
 'validate'    => 'required|valid_name',
 'filter'      => 'trim|sanitize_string',
-'placeholder' => 'Enter your name',
-'extras' => 'no-save'
+'placeholder' => 'Enter your name'
 ),
 array(
 'var'         => 'example-password', 

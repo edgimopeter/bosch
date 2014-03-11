@@ -19,8 +19,7 @@
         <div class="container">
     	
         <?php 
-
-            
+        
             $this_form = new Bosch;
             Bosch_Config::set('group-headings', '<h3>');
             Bosch_Config::set('form-type', 'block');
