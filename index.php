@@ -1,4 +1,4 @@
-<?php include ('bosch.class.php'); ?>
+<?php include ('bosch/init.php'); ?>
 
 <!DOCTYPE html>
 <html class="no-js">
@@ -20,6 +20,7 @@
     	
         <?php 
 
+            
             $this_form = new Bosch;
             Bosch_Config::set('group-headings', '<h3>');
             Bosch_Config::set('form-type', 'block');
