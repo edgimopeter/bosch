@@ -21,8 +21,8 @@
         <?php 
 
             $this_form = new Bosch;
-            $this_form->settings['group-headings'] = '<h3>';
-            $this_form->settings['form-type'] = 'block';
+            Bosch_Config::set('group-headings', '<h3>');
+            Bosch_Config::set('form-type', 'block');
 
             include ('fields.php');
             $this_form->set_fields( $fields );
@@ -53,13 +53,24 @@
                 )
             );
 
-            $this_form->errors = $this_form->process();
+            if ( $this_form->has_been_submitted() ){
+
+                $this_form->process();
+
+                if ( !empty($this_form->errors) ){
+                    $this_form->output_errors();
+                }
+                else{
+
+                    if( $this_form->blank_honeypot() ){
+                        echo '<div class="alert alert-success">Thank you! We will be in touch with you shortly!</div>';
+                    }
+                }
+            }    
 
         ?>
 
         <p>Welcome to the form! Blah blah blah!</p>
-
-        <?php $this_form->output_result(); ?>
 
         <h1>Full form</h1>
         <div class="bosch-example">            
