@@ -15,7 +15,7 @@ hide_label  = true or false, defaults to false
 size        = control font sizing (lg or sm, blank is medium)
 input_width = control width on horizontal form (col-md-4, col-xs-2, etc). Blank is set with $bosch->settings['default-column-width'];
 label_width = control width of label on horizontal form
-extras      = disabled|multiple
+extras      = disabled|multiple|nosave
 
 
 
@@ -73,7 +73,8 @@ array(
 'desc'        => 'Please enter your name',
 'validate'    => 'required|valid_name',
 'filter'      => 'trim|sanitize_string',
-'placeholder' => 'Enter your name'
+'placeholder' => 'Enter your name',
+'extras' => 'no-save'
 ),
 array(
 'var'         => 'example-password', 

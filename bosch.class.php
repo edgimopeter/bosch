@@ -11,6 +11,7 @@ class Bosch {
     private $fields = array();
     private $groups = array();
     public $errors = array();
+    public $data = array();
 
     public $settings = array(
         'group-headings' => '<h2>',
@@ -18,7 +19,10 @@ class Bosch {
         'input-width'    => 'col-md-10',
         'label-width'    => 'col-md-2',
         'submit-class'   => 'btn btn-primary',
-        'submit-value'   => 'submit'
+        'submit-value'   => 'Submit',
+        'submit-name'   => 'submit',
+        'hide-labels'    => false,
+        'honeypot'      => true
     );
 
     private $requires_options = array('checkbox', 'checkbox-inline', 'select', 'radio', 'radio-inline');
@@ -63,6 +67,12 @@ class Bosch {
 
         foreach ($groups as $k => $v) {
             $new_group = new Group( $groups[$k] );
+
+            //make sure name is set
+            if ( !isset($groups[$k]['name']) ){
+                $groups[$k]['name'] = '';
+            }
+
             if ( array_key_exists( slugify($groups[$k]['name']), $this->groups) ){
                 $this->bosch_error('Duplicate Group Name detected: <code>'.$groups[$k]['name'].'</code>');
             }
@@ -74,12 +84,19 @@ class Bosch {
                 if ( $valid_response !== 'valid' ){
                     $this->bosch_error( $valid_response );
                 }
-            }
-            
+            } 
         }
     }
 
     function output(){
+
+        if ( !isset($this->groups) || empty($this->groups) ){
+            foreach ($this->fields as $field) {
+                $field_vars[] = $field->var;
+            }
+
+            $this->set_groups( array(array( 'fields' => implode('|', $field_vars) )) );
+        }
 
         switch ( $this->settings['form-type'] ){
             case 'block' : $class = ''; break;
@@ -94,6 +111,10 @@ class Bosch {
             foreach ($this->groups as $group) {
                 $this->output_group( $group );               
             }
+
+        if ( $this->settings['honeypot'] ){
+            $this->output_honeypot();
+        }
 
         $this->submit_button();
 
@@ -153,10 +174,12 @@ class Bosch {
         isset($this->errors) && array_key_exists($field->var, $this->errors) ? $error = 'has-error' : $error = '';
         isset($field->placeholder) ? $placeholder = $field->placeholder : $placeholder = '';
         isset($field->hide_label) && $field->hide_label === true ? $label_class = 'sr-only' : $label_class = '';
+
+        isset($this->settings['hide-labels']) && $this->settings['hide-labels'] === true ? $label_class = 'sr-only' : $label_class = '';
         isset($field->size) ? $input_class .= ' input-'.$field->size : $input_class .= '';
         isset($field->desc) ? $desc = '<p class="help-block">'.$field->desc.'</p>' : $desc = '';
         isset($field->extras) ? $extras = str_replace('|', ' ', $field->extras) : $extras = '';
-        isset($field->value) ? $field_value = $field->value : $field_value = $field->default;
+        isset($field->value) && !strstr($extras, 'no-save') ? $field_value = $field->value : $field_value = $field->default;
 
         if ( $this->settings['form-type'] == 'horizontal' ){
             isset($field->input_width) ? $col = $field->input_width : $col = $this->settings['input-width'];
@@ -219,9 +242,11 @@ class Bosch {
                 if ( $field->type == 'day' ) $field->options = $this->days;
 
             echo '
-                <select id="'.$field->var.'" '.$extras.' class="'.$input_class.'" name="form['.$field->var.']">
-                    <option value="">-- Choose --</option>';
-
+                <select id="'.$field->var.'" '.$extras.' class="'.$input_class.'" name="form['.$field->var.']">';
+                    if ( $placeholder )
+                        echo '<option value="">'.$placeholder.'</option>';
+                    else
+                        echo '<option value="">-- Choose --</option>';
                     foreach( $field->options as $id => $name ){
                         $field_value == $id ? $selected = 'selected' : $selected = '';
                         echo '<option '.$selected.' value="'.$id.'">'.$name.'</option>';
@@ -298,6 +323,10 @@ class Bosch {
 
             break;
 
+            case 'captcha':
+                echo 'CAPTCHA';
+                break;
+
             default : 
                 $this->bosch_error('Invalid type property <code>'.$field->type.'</code> in field <code>'.$field->var.'</code>');
                 break;
@@ -348,29 +377,45 @@ class Bosch {
 
     }
 
-    function process(){
+    function has_been_submitted(){
 
-        if ( !isset($_POST['submit']) )
+        if ( !isset($_POST[$this->settings['submit-name']]) )
+            return false;
+
+        if ( $_POST[$this->settings['submit-name']] !== $this->settings['submit-value'] )
+            return false;
+
+        return true;
+
+    }
+
+    function process(){
+        
+        if ( !$this->has_been_submitted() )
             return;
 
-        include('gump.class.php');
+        if ( !class_exists('GUMP') )
+            include_once('gump.class.php');
 
         $gump = new GUMP();
         $_POST = $gump->sanitize($_POST);
 
         foreach ($_POST['form'] as $k => $v) {
 
-            if ( is_array($_POST['form'][$k]) ){
-                $_POST['form'][$k] = implode('|', $_POST['form'][$k]);
+            //ignore the honeypot field
+            if ( $k !== 'hp' ){
+                if ( is_array($_POST['form'][$k]) ){
+                    $_POST['form'][$k] = implode('|', $_POST['form'][$k]);
+                }
+
+                if ( !empty($this->fields[$k]->validate) )
+                    $validate[$k] = $this->fields[$k]->validate;
+                
+                if ( !empty($this->fields[$k]->filter) )
+                    $filter[$k] = $this->fields[$k]->filter;
+
+                $this->fields[$k]->value = $v;
             }
-
-            if ( !empty($this->fields[$k]->validate) )
-                $validate[$k] = $this->fields[$k]->validate;
-            
-            if ( !empty($this->fields[$k]->filter) )
-                $filter[$k] = $this->fields[$k]->filter;
-
-            $this->fields[$k]->value = $v;
         }
 
         if ( !empty($validate) )
@@ -396,24 +441,13 @@ class Bosch {
 
         if ( $validated_data === false ){
             $errors = array_merge($errors, $gump->get_readable_errors(false));
-            return $errors;
+            $this->errors = $errors;
+            return false;
         }
-
-        /*do success actions here*/
-      
-        //MAIL
-        /*
-        $to = 'peteradamsmusic@gmail.com';
-        $subject = 'Test';
-        $message = 'testing';
-        $headers = 'From: noreply@pyos.org'."\r\n".
-          'Reply-To: noreply@pyos.org'."\r\n" .
-          'X-Mailer: PHP/' . phpversion();
-        
-        mail($to, $subject, $message, $headers);
-        */
-
-        //UNSET FORM VALUES
+        else{
+            $this->data = $validated_data;
+            return true;
+        }
 
     }
 
@@ -433,9 +467,9 @@ class Bosch {
     }
 
     //Call this in the page where you want submission results to be shown to the user
-    function output_result(){
+    function output_errors(){
 
-        if ( !isset($_POST['submit']) )
+        if ( !$this->has_been_submitted() )
             return;
 
         if ( isset($this->errors) && !empty($this->errors) ){
@@ -448,12 +482,23 @@ class Bosch {
             return;
         }
 
-        echo '<div class="alert alert-success">Success!</div>';
+    }
 
+    function output_honeypot(){
+        echo '
+        <div class="sr-only"><label for="form[hp]">Honeypot: If you see this field, leave it blank</label><input name="form[hp]" type="text" value=""></div>';
+    }
+
+    function blank_honeypot(){
+        if ( isset($this->data['hp']) && !empty($this->data['hp']) && $this->data['hp'] !== '' ){
+            return false;
+        }
+
+        return true;
     }
 
     function submit_button(){
-        echo '<input type="submit" value="'.$this->settings['submit-value'].'" name="submit" class="'.$this->settings['submit-class'].'">';
+        echo '<input type="submit" value="'.$this->settings['submit-value'].'" name="'.$this->settings['submit-name'].'" class="'.$this->settings['submit-class'].'">';
     }
 }
 
@@ -493,19 +538,24 @@ class Group{
     }
 }
 
-function slugify($text){ 
-    $text = preg_replace('~[^\\pL\d]+~u', '-', $text);
-    $text = trim($text, '-');
-    $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
-    $text = strtolower($text);
-    $text = preg_replace('~[^-\w]+~', '', $text);
+if ( !function_exists('slugify') ){
+    function slugify($text){ 
+        $text = preg_replace('~[^\\pL\d]+~u', '-', $text);
+        $text = trim($text, '-');
+        $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
+        $text = strtolower($text);
+        $text = preg_replace('~[^-\w]+~', '', $text);
 
-    if (empty($text)){
-        return 'n-a';
+        if (empty($text)){
+            return 'n-a';
+        }
+
+        return $text;
     }
 
-    return $text;
 }
+
+
 
 function close_tag( $tag ){ 
 
