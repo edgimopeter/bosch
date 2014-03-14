@@ -1,91 +1,107 @@
 <?php
+/**
+ * Bosch Field
+ *
+ * @author      Peter Adams (http://peteradamsdev.com)
+ * @copyright   Copyright (c) 2013 Peter Adams
+ * @link        https://github.com/edgimopeter/bosch
+ * @version     1.0
+ */
+
+/**
+ * Bosch Fields hold properties for a single input field
+ */
 class Bosch_Field{
 
     /**
-     * $var The variable name, no spaces
+     * The variable name, no spaces
      * @var string
      */
     public $var;
 
     /**
-     * $name The display label
+     * The display label
      * @var string
      */
     public $name;
 
     /**
-     * $type Type of data
+     * Type of data
      * Choices: text, money, date, select, checkbox, checkbox-inline, radio, radio-inline, textarea
      * @var string
      */
     public $type;
 
     /**
-     * $options For select/radio/checkbox, an associative array of varlabel. For textarea, number of rows to display
+     * For select/radio/checkbox, an associative array of varlabel. For textarea, number of rows to display
      * @var mixed
      */
     public $options;
 
     /**
-     * $desc Help text to display beneath field
+     * Help text to display beneath field
      * @var string
      */
     public $desc;
 
     /**
-     * $default Default value
+     * Default value
      * @var string
      */
     public $default;
 
     /**
-     * $validate String of validators (see below), seperated by '|'
+     * String of validators (see below), seperated by '|'
      * @var string
      */
     public $validate;
 
     /**
-     * $filter String of filters (see below), seperated by '|'
+     * String of filters (see below), seperated by '|'
      * @var string
      */
     public $filter;
 
     /**
-     * $placeholder Placeholder text
+     * Placeholder text
      * @var string
      */
     public $placeholder;
 
     /**
-     * $hide_label Show or hide the label
+     * Show or hide the label
      * @var bool
      */
     public $hide_label;
 
     /**
-     * $size Control font sizing (lg or sm, blank is medium)
+     * Control font sizing (lg or sm, blank is medium)
      * @var string
      */
     public $size;
 
     /**
-     * $input_width Control width on horizontal form (col-md-4, col-xs-2, etc). Blank is set with $bosch->settings['default-column-width'];
+     * Control width on horizontal form (col-md-4, col-xs-2, etc). Blank is set with $bosch->settings['default-column-width'];
      * @var string
      */
     public $input_width;
 
     /**
-     * $label_width Control width of label on horizontal form
+     * Control width of label on horizontal form
      * @var string
      */
     public $label_width;
 
     /**
-     * $extras Choices are disabled|multiple|nosave
+     * Choices are disabled|multiple|nosave
      * @var string
      */
     public $extras;
 
+    /**
+     * Constructor
+     * @param array $properties 
+     */
     function __construct( $properties = array() ){
 
         foreach ($properties as $k => $v) {

@@ -12,6 +12,10 @@
 		include_once('bosch-field.class.php');
 	}
 
+	if ( !class_exists('Bosch_Step') ){
+		include_once('bosch-step.class.php');
+	}
+
 	if ( !class_exists('Bosch_Validator') ){
 		include_once('bosch-validator.class.php');
 	}

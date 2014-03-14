@@ -1,36 +1,58 @@
 <?php
+/**
+ * Bosch Group
+ *
+ * @author      Peter Adams (http://peteradamsdev.com)
+ * @copyright   Copyright (c) 2013 Peter Adams
+ * @link        https://github.com/edgimopeter/bosch
+ * @version     1.0
+ */
+
+/**
+ * Bosch Groups hold one or more Fields
+ */
 class Bosch_Group{
     
     /**
-     * $name Name of the group to be publicly displayed
+     * Name of the group to be publicly displayed
      * @var string
      */
-    public $name;
+    public $name = '';
+
+    /**
+     * Hide the name
+     * @var bool
+     */
+    public $hide_name = false;
     
     /**
-     * $desc Helper text to display
+     * Helper text to display
      * @var string
      */
-    public $desc;
+    public $desc = '';
     
     /**
-     * $fields String of field vars seperated by '|'
+     * String of field vars seperated by '|'
      * @var string
      */
     public $fields;
     
     /**
-     * $html_before HTML to process before group
+     * HTML to process before group
      * @var string
      */
     public $html_before;
     
     /**
-     * $html_after HTML to process after group
+     * HTML to process after group
      * @var string
      */
     public $html_after;
 
+    /**
+     * Constructor
+     * @param array $properties 
+     */
     function __construct( $properties = array() ){
 
         foreach ($properties as $k => $v) {

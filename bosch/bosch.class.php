@@ -9,91 +9,127 @@
  * @version     1.0
  */
 
-class Bosch_Config{
-    
-    /**
-     * Static class for config settings, stored in array $config
-     *
-     * @var array
-     */
-    protected static $config = array();
+//phpdoc -d C:\wamp\www\bosch\bosch -t C:\wamp\www\bosch\guide --template="clean"
 
-    private function __construct() { }
-    
-    /**
-     * Usage: Bosch_Config::set('key', 'value');
-     *
-     * @param string $key Name of key to set
-     * @param string $val Value to set $key to
-     */
-    public static function set( $key, $val ){
-        self::$config[$key] = $val;
-    }
-
-    /**
-     * Usage: Bosch_Config::get('key');
-     *
-     * @param string $key Name of key to get
-     * @return mixed Value of $key
-     */
-    public static function get($key){
-        return self::$config[$key];
-    }
-}
-
+/**
+ * Main Bosch class comprises fields and groups
+ */
 class Bosch {
 
-    //preset list of states for select fields
+    /**
+     * Preset list of states for select fields
+     * @var array
+     */
     private $states = array("AL" => "Alabama", "AK" => "Alaska", "AZ" => "Arizona", "AR" => "Arkansas", "CA" => "California", "CO" => "Colorado", "CT" => "Connecticut", "DE" => "Delaware", "FL" => "Florida", "GA" => "Georgia", "HI" => "Hawaii", "ID" => "Idaho", "IL" => "Illinois", "IN" => "Indiana", "IA" => "Iowa", "KS" => "Kansas", "KY" => "Kentucky", "LA" => "Louisiana", "ME" => "Maine", "MD" => "Maryland", "MA" => "Massachusetts", "MI" => "Michigan", "MN" => "Minnesota", "MS" => "Mississippi", "MO" => "Missouri", "MT" => "Montana", "NE" => "Nebraska", "NV" => "Nevada", "NH" => "New Hampshire", "NJ" => "New Jersey", "NM" => "New Mexico", "NY" => "New York", "NC" => "North Carolina", "ND" => "North Dakota", "OH" => "Ohio", "OK" => "Oklahoma", "OR" => "Oregon", "PA" => "Pennsylvania", "RI" => "Rhode Island", "SC" => "South Carolina", "SD" => "South Dakota", "TN" => "Tennessee", "TX" => "Texas", "UT" => "Utah", "VT" => "Vermont", "VA" => "Virginia", "WA" => "Washington", "WV" => "West Virginia", "WI" => "Wisconsin", "WY" => "Wyoming");
 
-    //preset list of months for select fields
+    /**
+     * Preset list of months for select fields
+     * @var array
+     */
     private $months = array('jan' => 'January', 'feb' => 'February', 'mar' => 'March', 'apr' => 'April', 'may' => 'May', 'june' => 'June', 'july' => 'July', 'aug' => 'August', 'sep' => 'September', 'oct' => 'October', 'nov' => 'November', 'dec' => 'December');
 
-    //preset list of days for select fields
+    /**
+     * Preset list of days for select fields
+     * @var array
+     */
     private $days = array(1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => '8', 9 => '9', 10 => '10', 11 => '11', 12 => '12', 13 => '13', 14 => '14', 15 => '15', 16 => '16', 17 => '17', 18 => '18', 19 => '19', 20 => '20', 21 => '21', 22 => '22', 23 => '23', 24 => '24', 25 => '25', 26 => '26', 27 => '27', 28 => '28', 29 => '29', 30 => '30', 31 => '31');
     
-    //array holding field data for this bosch
+    /**
+     * Array holding field data for this bosch
+     * @var array
+     */
     private $fields = array();
 
-    //array holding group data for this bosch
+    /**
+     * Array holding group data for this bosch
+     * @var array
+     */
     private $groups = array();
 
-    //array holding errors for this bosch
+    /**
+     * Array holding step data for this bosch
+     * @var array
+     */
+    private $steps = array();
+
+    /**
+     * Array holding errors for this bosch
+     * @var array
+     */
     public $errors = array();
 
-    //after submit, array holding validated data for this bosch
+    /**
+     * After submit, array holding validated data for this bosch
+     * @var array
+     */
     public $data = array();
 
+    /**
+     * Various form settings
+     * @var array
+     */
+    private $bosch_settings = array();
+
+    /**
+     * Set the current form step to 1
+     * @var int
+     */
+    private $current_step = 0;
+
+    /**
+     * Default constructor to generate default settings
+     */
     public function __construct() {
         
-        //this will wrap group headings
-        Bosch_Config::set('group-headings', '<h2>');
-        
-        //block, inline, or horizontal
-        Bosch_Config::set('form-type', 'block');
-        
-        //if horizontal, default column width for inputs
-        Bosch_Config::set('input-width', 'col-md-10');
-        
-        //if horiztonal, default column width for labels
-        Bosch_Config::set('label-width', 'col-md-2');
-        
-        //CSS class(es) applied to submit button
-        Bosch_Config::set('submit-class', 'btn btn-primary');
-        
-        //value applied to submit button
-        Bosch_Config::set('submit-value', 'Submit');
-        
-        //name applied to submit button
-        Bosch_Config::set('submit-name', 'submit');
-        
-        //hide labels, true or false
-        Bosch_Config::set('hide-labels', false);
-        
-        //use honeypot for captcha, true or false
-        Bosch_Config::set('honeypot', true);
+        $this->bosch_settings = 
+            array(
+                //this will wrap group headings
+                'group-headings' => '<h2>',
+
+                //block => inline => or horizontal
+                'form-type' => 'block',
+
+                //if horizontal => default column width for inputs
+                'input-width' => 'col-md-10',
+
+                //if horiztonal => default column width for labels
+                'label-width' => 'col-md-2',
+
+                //CSS class(es) applied to submit button
+                'submit-class' => 'btn btn-primary',
+
+                //value applied to submit button
+                'submit-value' => 'Submit',
+
+                //name applied to submit button
+                'submit-name' => 'submit',
+
+                //hide labels => true or false
+                'hide-labels' => false,
+
+                //use honeypot for captcha, true or false
+                'honeypot' => true,
+
+                //show debug info
+                'debug' => false
+            );
     }
 
+    /**
+     * Set/get for settings
+     *
+     * @param string $key The name of the setting to set or get
+     * @param string $value Optional name of value to set
+     */
+    public function settings( $key, $value = false ){
+
+        if ( $value ){
+            $this->bosch_settings[$key] = $value;
+            return true;
+        }
+
+        return $this->bosch_settings[$key];
+    }
     
     /**
      * Output an exception message
@@ -194,8 +230,22 @@ class Bosch {
     }
 
     /**
-     * Output the entire bosch form
+     * Set the steps from a supplied array. Defaults to a single-step form.
      *
+     * @param array $steps Array of steps
+     */
+    public function set_steps( $steps = array() ){
+
+        foreach ($steps as $k => $v) {
+            $this->steps[] = new Bosch_Step( $steps[$k] );
+        }
+
+        return;
+    }
+
+    /**
+     * Output the entire bosch form
+     * @todo finalize multistep buttons
      */
     public function output(){
 
@@ -205,11 +255,26 @@ class Bosch {
                 $field_vars[] = $field->var;
             }
 
-            $this->set_groups( array(array( 'fields' => implode('|', $field_vars) )) );
+            $this->set_groups( array(
+                array( 
+                    'name' => 'generic_group',
+                    'hide_name' => true,
+                    'fields' => implode('|', $field_vars) )
+                ) 
+            );
+        }
+
+        //if no steps have been set yet, create a generic step for all groups
+        if ( !isset($this->steps) || empty($this->steps) ){
+            foreach ($this->groups as $group) {
+                $group_vars[] = $group->name;
+            }
+
+            $this->set_steps(array(array('groups' => implode('|', $group_vars))));      
         }
 
         //get form type from settings
-        switch ( Bosch_Config::get('form-type') ){
+        switch ( $this->settings('form-type') ){
             case 'block' : $class = ''; break;
             case 'inline' : $class = 'form-inline'; break;
             case 'horizontal' : $class = 'form-horizontal'; break;
@@ -217,18 +282,13 @@ class Bosch {
         }
 
         echo '
-        <form role="form" class="bosch-form '.$class.'" method="post">';
+        <form role="form" class="bosch-form step-'.$this->current_step.' '.$class.'" method="post">';
+    
+            $this->output_current_step();
 
-            foreach ($this->groups as $group) {
-                $this->output_group( $group );               
-            }
-
-        if ( Bosch_Config::get('honeypot') ){
             echo '
-            <div class="sr-only"><label for="form[hp]">Honeypot: If you see this field, leave it blank</label><input name="form[hp]" type="text" value=""></div>';
-        }
-
-        $this->submit_button();
+            <input type="submit" value="'.$this->settings('submit-value').'" name="'.$this->settings('submit-name').'" class="'.$this->settings('submit-class').'">';
+            //$this->buttons();
 
         echo '</form>';
 
@@ -236,24 +296,41 @@ class Bosch {
 
     }
 
+    public function output_current_step(){
+
+        foreach ( explode('|', $this->steps[$this->current_step]->groups) as $group){
+            $this->output_group( $group );               
+        }
+    }
+
     /**
      * Output a single group
+     *
+     * When called directly with $group as a string, converts the string group name into the corresponding group object
      *
      * @param mixed $group Name of group to output, or group object to output
      */
     public function output_group( $group ){
 
-        //when called directly with $group as a string, convert the string group name into the corresponding group object
         if ( !is_object($group) ){
             $group = $this->groups[$this->slugify($group)];
         }
 
+        //hide the name if set
+        isset($group->hide_name) && $group->hide_name === true ? $heading = '' : $heading = $group->name;
+
         echo 
         $group->html_before . '                    
-        <div class="bosch-group group-'.$this->slugify( $group->name ).'">
+        <div class="bosch-group group-'.$this->slugify( $group->name ).'">';
+
+        if ( $group->hide_name === false ){
+            echo '
             <div class="bosch-heading">
-                '.Bosch_Config::get('group-headings') . $group->name . close_tag(Bosch_Config::get('group-headings')) .'
-            </div>
+                '.$this->settings('group-headings') . $group->name . $this->close_tag($this->settings('group-headings')) .'
+            </div>';
+        }
+
+        echo '            
             <div class="bosch-group-desc">
                 '.$group->desc.'
             </div>';
@@ -310,7 +387,7 @@ class Bosch {
         isset($field->hide_label) && $field->hide_label === true ? $label_class = 'sr-only' : $label_class = '';
 
         //hide the label if the global setting is true
-        Bosch_Config::get('hide-labels') === true ? $label_class = 'sr-only' : $label_class = '';
+        $this->settings('hide-labels') === true ? $label_class = 'sr-only' : $label_class = '';
 
         //if the field size is set, add it to the input class string
         isset($field->size) ? $input_class .= ' input-'.$field->size : $input_class .= '';
@@ -326,11 +403,11 @@ class Bosch {
 
         //set column pre and post HTML if form is set to horizontal
         $input_col_pre = ''; $input_col_post = '';
-        if ( Bosch_Config::get('form-type') == 'horizontal' ){
-            isset($field->input_width) ? $col = $field->input_width : $col = Bosch_Config::get('input-width');
+        if ( $this->settings('form-type') == 'horizontal' ){
+            isset($field->input_width) ? $col = $field->input_width : $col = $this->settings('input-width');
             $input_col_pre = '<div class="'.$col.'">';
             $input_col_post = '</div>';
-            isset($field->label_width) ? $col = $field->label_width : $col = Bosch_Config::get('label-width');
+            isset($field->label_width) ? $col = $field->label_width : $col = $this->settings('label-width');
             $label_class .= ' '.$col;
         }
 
@@ -497,10 +574,10 @@ class Bosch {
      */
     public function has_been_submitted(){
 
-        if ( !isset($_POST[Bosch_Config::get('submit-name')]) )
+        if ( !isset($_POST[$this->settings('submit-name')]) )
             return false;
 
-        if ( $_POST[Bosch_Config::get('submit-name')] !== Bosch_Config::get('submit-value') )
+        if ( $_POST[$this->settings('submit-name')] !== $this->settings('submit-value') )
             return false;
 
         return true;
@@ -567,9 +644,14 @@ class Bosch {
         //no errors, save the validated data and return true
         else{
             $this->data = $validated_data;
+
+            foreach ($validated_data as $k => $v) {
+                $_SESSION['storage'][$this->current_step][$k] = $v;
+                $this->current_step++;
+            }
+
             return true;
         }
-
     }
 
     /**
@@ -628,11 +710,37 @@ class Bosch {
     }
 
     /**
-     * Output the submit button
-     *
+     * Output the buttons
+     * @return string
      */
-    public function submit_button(){
-        echo '<input type="submit" value="'.Bosch_Config::get('submit-value').'" name="'.Bosch_Config::get('submit-name').'" class="'.Bosch_Config::get('submit-class').'">';
+    public function buttons(){
+
+        $btns = '<div class="row">';
+
+        //last step
+        if ( ($this->current_step + 1) === count( $this->steps ) ){
+            if ( $this->settings('honeypot') ){
+                $btns .= '
+                <div class="sr-only"><label for="form[hp]">Honeypot: If you see this field, leave it blank</label><input name="form[hp]" type="text" value=""></div>';
+            }
+
+            $btns .= '<input type="submit" value="'.$this->settings('submit-value').'" name="'.$this->settings('submit-name').'" class="'.$this->settings('submit-class').'">';
+        }
+        else{
+            $btns .= '
+            <input type="hidden" name="step" value="'.$this->current_step.'"';
+            if ( $this->steps[$this->current_step]->$prev === true ){
+                $btns .= '
+                
+                ';
+            }
+        }
+
+        $btns .= '</div>';
+
+        return $btns;
+
+        
     }
 
     /**
@@ -654,16 +762,22 @@ class Bosch {
 
         return $text;
     }
+
+    /**
+     * Close an HTML tag
+     * @param string $tag The tag to be closed, e.g. '<h3>' or '<p>'
+     * @return string
+     *
+     */
+    private function close_tag( $tag ){ 
+        if ( $tag == '' )
+            return;
+
+        $out = ''; 
+        $temp = substr($tag, 1); 
+        $out = substr_replace($tag,'/', 1); 
+        $out .= $temp; 
+        return $out; 
+    }
 }
 
-function close_tag( $tag ){ 
-
-    if ( $tag == '' )
-        return;
-
-    $out = ''; 
-    $temp = substr($tag, 1); 
-    $out = substr_replace($tag,'/', 1); 
-    $out .= $temp; 
-    return $out; 
-}
