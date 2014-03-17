@@ -59,7 +59,8 @@ class Bosch {
     public $errors = array();
 
     /**
-     * After submit, array holding validated data for this bosch
+     * After submit, array holding validated data for this bosch indexed by step
+     * $data[0]['var_name'];
      * @var array
      */
     public $data = array();
@@ -70,11 +71,6 @@ class Bosch {
      */
     private $bosch_settings = array();
 
-    /**
-     * Set the current form step to 1
-     * @var int
-     */
-    private $current_step = 0;
 
     /**
      * Default constructor to generate default settings
@@ -97,6 +93,9 @@ class Bosch {
 
                 //CSS class(es) applied to submit button
                 'submit-class' => 'btn btn-primary',
+
+                //CSS class(es) applied to prev and next buttons
+                'nav-class' => 'btn btn-info',
 
                 //value applied to submit button
                 'submit-value' => 'Submit',
@@ -243,6 +242,21 @@ class Bosch {
         return;
     }
 
+    
+    private function get_step_fields( $curent_step ){
+
+        $fields = array();
+
+        foreach ( explode('|', $this->steps[$_SESSION['step']]->groups) as $group){
+            foreach ( explode('|', $group->fields) as $field){
+                $fields[] = $field;
+            }
+        }
+
+        return $fields;
+    }
+    
+
     /**
      * Output the entire bosch form
      * @todo finalize multistep buttons
@@ -282,13 +296,10 @@ class Bosch {
         }
 
         echo '
-        <form role="form" class="bosch-form step-'.$this->current_step.' '.$class.'" method="post">';
+        <form role="form" class="bosch-form step-'.$_SESSION['step'].' '.$class.'" method="post">';
     
             $this->output_current_step();
-
-            echo '
-            <input type="submit" value="'.$this->settings('submit-value').'" name="'.$this->settings('submit-name').'" class="'.$this->settings('submit-class').'">';
-            //$this->buttons();
+            echo $this->buttons();
 
         echo '</form>';
 
@@ -298,7 +309,7 @@ class Bosch {
 
     public function output_current_step(){
 
-        foreach ( explode('|', $this->steps[$this->current_step]->groups) as $group){
+        foreach ( explode('|', $this->steps[$_SESSION['step']]->groups) as $group){
             $this->output_group( $group );               
         }
     }
@@ -574,6 +585,19 @@ class Bosch {
      */
     public function has_been_submitted(){
 
+        if ( !isset($_POST['prev']) && !isset($_POST['next']) && !isset($_POST[$this->settings('submit-name')]) )
+            return false;
+
+        return true;
+    }
+
+    /**
+     * Check if the final step has been submitted
+     *
+     * @return bool 
+     */
+    public function final_submit(){
+
         if ( !isset($_POST[$this->settings('submit-name')]) )
             return false;
 
@@ -596,6 +620,9 @@ class Bosch {
         //don't run if the form hasn't been submitted
         if ( !$this->has_been_submitted() )
             return;
+
+        $validate = array();
+        $filter = array();
 
         $validator = new Bosch_Validator( $this->fields );
         $_POST = $validator->sanitize($_POST);
@@ -634,7 +661,7 @@ class Bosch {
             $errors = $missing_checkboxes;
         }
 
-        //GUMP validation failed, merge GUMP errors with checkbox errors
+        //validation failed, merge errors with checkbox errors
         if ( $validated_data === false ){
             $errors = array_merge($errors, $validator->get_readable_errors(false));
             $this->errors = $errors;
@@ -643,12 +670,16 @@ class Bosch {
         
         //no errors, save the validated data and return true
         else{
-            $this->data = $validated_data;
+            $this->data[$_SESSION['step']] = $validated_data;
 
             foreach ($validated_data as $k => $v) {
-                $_SESSION['storage'][$this->current_step][$k] = $v;
-                $this->current_step++;
+                $_SESSION['storage'][$_SESSION['step']][$k] = $v;
             }
+
+            if ( isset($_POST['prev']) && $_POST['prev'] == 'prev' )
+                $_SESSION['step']--;
+            if ( isset($_POST['next']) && $_POST['next'] == 'next' )
+                $_SESSION['step']++;
 
             return true;
         }
@@ -715,32 +746,79 @@ class Bosch {
      */
     public function buttons(){
 
-        $btns = '<div class="row">';
+        $btns = '
+        <div class="row">';
 
         //last step
-        if ( ($this->current_step + 1) === count( $this->steps ) ){
+        if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
             if ( $this->settings('honeypot') ){
-                $btns .= '
-                <div class="sr-only"><label for="form[hp]">Honeypot: If you see this field, leave it blank</label><input name="form[hp]" type="text" value=""></div>';
+                $btns .= $this->honeypot();
             }
 
-            $btns .= '<input type="submit" value="'.$this->settings('submit-value').'" name="'.$this->settings('submit-name').'" class="'.$this->settings('submit-class').'">';
+            $btns .= $this->submit_button();
         }
         else{
             $btns .= '
-            <input type="hidden" name="step" value="'.$this->current_step.'"';
-            if ( $this->steps[$this->current_step]->$prev === true ){
+            <div class="col-md-6">';
+                //check if the form is set to display previous button
+                if ( $this->steps[$_SESSION['step']]->prev === true ){
+                    $btns .= $this->previous_button();
+                }
                 $btns .= '
-                
-                ';
-            }
+            </div>
+            <div class="col-md-6">';
+            //check if the form is set to display next button
+                if ( $this->steps[$_SESSION['step']]->next === true ){
+                    $btns .= $this->next_button();
+                }
+                $btns .= '
+            </div>';
         }
 
-        $btns .= '</div>';
+        $btns .= '
+        </div>';
 
         return $btns;
+    }
 
-        
+    /**
+     * Output the next button
+     * @return string
+     */
+    public function next_button(){
+        //check if this is the last step
+        if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
+            return '';
+        }
+        return '<input type="submit" value="next" name="next" class="'.$this->settings('nav-class').'">';
+    }
+
+    /**
+     * Output the previous button
+     * @return string
+     */
+    public function previous_button(){
+        //check if this is the first step
+        if ( $_SESSION['step'] == 0 ){
+            return '';
+        }
+        return '<input type="submit" value="prev" name="prev" class="'.$this->settings('nav-class').'">';
+    }
+
+    /**
+     * Output the (final) submit button
+     * @return string
+     */
+    public function submit_button(){
+        return '<input type="submit" value="'.$this->settings('submit-value').'" name="'.$this->settings('submit-name').'" class="'.$this->settings('submit-class').'">';
+    }
+
+    /**
+     * Output the honeypot field
+     * @return string
+     */
+    public function honeypot(){
+        return '<div class="sr-only"><label for="form[hp]">Bot test: If you see this field, leave it blank</label><input name="form[hp]" type="text" value=""></div>';
     }
 
     /**

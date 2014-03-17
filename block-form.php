@@ -182,18 +182,23 @@
 
                     $this_form->process();
 
+
+
                     if ( !empty($this_form->errors) ){
                         $this_form->output_errors();
                     }
                     else{
 
-                        if( $this_form->blank_honeypot() ){
+                        if( $this_form->final_submit() && $this_form->blank_honeypot() ){
+                            var_dump($this_form->data);
                             echo '<div class="alert alert-success">Thank you! We will be in touch with you shortly!</div>';
                         }
                     }
-                }    
+                }
 
-               $this_form->output();
+                var_dump($_SESSION);    
+
+                $this_form->output();
 
                ?>
 
