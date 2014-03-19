@@ -14,24 +14,6 @@
 class Bosch_Field extends Bosch{
 
     /**
-     * Preset list of states for select fields
-     * @var array
-     */
-    private $states = array("AL" => "Alabama", "AK" => "Alaska", "AZ" => "Arizona", "AR" => "Arkansas", "CA" => "California", "CO" => "Colorado", "CT" => "Connecticut", "DE" => "Delaware", "FL" => "Florida", "GA" => "Georgia", "HI" => "Hawaii", "ID" => "Idaho", "IL" => "Illinois", "IN" => "Indiana", "IA" => "Iowa", "KS" => "Kansas", "KY" => "Kentucky", "LA" => "Louisiana", "ME" => "Maine", "MD" => "Maryland", "MA" => "Massachusetts", "MI" => "Michigan", "MN" => "Minnesota", "MS" => "Mississippi", "MO" => "Missouri", "MT" => "Montana", "NE" => "Nebraska", "NV" => "Nevada", "NH" => "New Hampshire", "NJ" => "New Jersey", "NM" => "New Mexico", "NY" => "New York", "NC" => "North Carolina", "ND" => "North Dakota", "OH" => "Ohio", "OK" => "Oklahoma", "OR" => "Oregon", "PA" => "Pennsylvania", "RI" => "Rhode Island", "SC" => "South Carolina", "SD" => "South Dakota", "TN" => "Tennessee", "TX" => "Texas", "UT" => "Utah", "VT" => "Vermont", "VA" => "Virginia", "WA" => "Washington", "WV" => "West Virginia", "WI" => "Wisconsin", "WY" => "Wyoming");
-
-    /**
-     * Preset list of months for select fields
-     * @var array
-     */
-    private $months = array('jan' => 'January', 'feb' => 'February', 'mar' => 'March', 'apr' => 'April', 'may' => 'May', 'june' => 'June', 'july' => 'July', 'aug' => 'August', 'sep' => 'September', 'oct' => 'October', 'nov' => 'November', 'dec' => 'December');
-
-    /**
-     * Preset list of days for select fields
-     * @var array
-     */
-    private $days = array(1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => '8', 9 => '9', 10 => '10', 11 => '11', 12 => '12', 13 => '13', 14 => '14', 15 => '15', 16 => '16', 17 => '17', 18 => '18', 19 => '19', 20 => '20', 21 => '21', 22 => '22', 23 => '23', 24 => '24', 25 => '25', 26 => '26', 27 => '27', 28 => '28', 29 => '29', 30 => '30', 31 => '31');
-
-    /**
      * The variable name, no spaces
      * @var string
      */
@@ -167,12 +149,13 @@ class Bosch_Field extends Bosch{
 
         //set default input class
         $input_class = 'form-control';
+        $errors = parent::$errors;
 
         //check of field is required
         in_array('required', explode('|', $this->validate) )? $required = 'required' : $required = '';
 
         //check if the form has been submitted and the field has an error
-        isset($this->errors) && array_key_exists($this->var, $this->errors) ? $error = 'has-error' : $error = '';
+        isset($errors) && array_key_exists($this->var, $errors) ? $error = 'has-error' : $error = '';
 
         //set the placeholder value
         isset($this->placeholder) ? $placeholder = $this->placeholder : $placeholder = '';

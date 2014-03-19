@@ -39,7 +39,7 @@ class Bosch {
      * Array holding errors for this bosch
      * @var array
      */
-    public $errors = array();
+    protected static $errors = array();
 
     /**
      * After submit, array holding validated data for this bosch indexed by step
@@ -156,11 +156,11 @@ class Bosch {
 
         //if no groups have been set yet, create a generic group for all fields
         if ( !isset($groups) || empty($groups) ){
-            foreach ($new_fields as $field) {
+            foreach ($this->fields as $field) {
                 $field_vars[] = $field->var;
             }
 
-            $groups = 
+            $groups[] = 
             array( 
                     'name' => 'generic_group',
                     'hide_name' => true,
@@ -192,19 +192,18 @@ class Bosch {
 
         //if no steps have been set, create a generic step for all groups
         if ( !isset($steps) || empty($steps) ){
-            foreach ($groups as $group) {
-                $group_names[] = $group['name'];
+            foreach ($this->groups as $group) {
+                $group_names[] = $group->name;
             }
 
-            $this->steps[] = new Bosch_Step( array( 'groups' => implode('|', $group_vars) ) );
+            $steps[] = new Bosch_Step( array( 'groups' => implode('|', $group_names) ) );
                 
         }
-        else{
-            foreach ($steps as $k => $v) {
-                $new_step = new Bosch_Step( $steps[$k] );
-                $new_step->init( $this->groups );
-                $this->steps[] = $new_step;
-            }
+       
+        foreach ($steps as $k => $v) {
+            $new_step = new Bosch_Step( $steps[$k] );
+            $new_step->init( $this->groups );
+            $this->steps[] = $new_step;
         }
 
         return true; 
@@ -279,7 +278,7 @@ class Bosch {
         //validation failed, merge errors with checkbox errors
         if ( $validated_data === false ){
             $errors = array_merge($errors, $validator->get_readable_errors(false));
-            $this->errors = $errors;
+            self::$errors = $errors;
             return false;
         }
         
@@ -314,6 +313,10 @@ class Bosch {
     public function reset(){
         $_SESSION['step'] = 0;
         unset($_SESSION['storage']);
+        $this->data = array();
+        foreach ($this->fields as $field) {
+            unset($field->value);
+        }
         return true;
     }
 
@@ -422,9 +425,9 @@ class Bosch {
         if ( !$this->has_been_submitted() )
             return false;
 
-        if ( isset($this->errors) && !empty($this->errors) ){
+        if ( isset(self::$errors) && !empty(self::$errors) ){
             echo '<div class="alert alert-danger">';
-                foreach ($this->errors as $error) {
+                foreach (self::$errors as $error) {
                     echo $error . '<br />';
                 }
             echo '</div>';
@@ -439,33 +442,38 @@ class Bosch {
      */
     public function get_buttons(){
 
-        $btns = '
-        <div class="row">';
-            $btns .= '
-            <div class="col-md-6">';
-                if ( $this->steps[$_SESSION['step']]->prev === true ){
-                    $btns .= $this->previous_button();
-                }
+        if ( count( $this->steps ) === 1 ){
+            $btns = '<div class="row"><div class="col-md-12">'.$this->submit_button().'</div></div>';
+        }
+        else{
+            $btns = '
+            <div class="row">';
                 $btns .= '
-            </div>
-            <div class="col-md-6">';
-                if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
-                    if ( $this->settings('honeypot') ){
-                        $btns .= $this->honeypot();
+                <div class="col-md-6">';
+                    if ( $this->steps[$_SESSION['step']]->prev === true ){
+                        $btns .= $this->previous_button();
                     }
+                    $btns .= '
+                </div>
+                <div class="col-md-6">';
+                    if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
+                        if ( $this->settings('honeypot') ){
+                            $btns .= $this->honeypot();
+                        }
 
-                    $btns .= $this->submit_button();
-                }
-                else{
-                    if ( $this->steps[$_SESSION['step']]->next === true ){
-                        $btns .= $this->next_button();
+                        $btns .= $this->submit_button();
                     }
-                }
-                
-                $btns .= '
+                    else{
+                        if ( $this->steps[$_SESSION['step']]->next === true ){
+                            $btns .= $this->next_button();
+                        }
+                    }
+                    
+                    $btns .= '
+                </div>';
+            $btns .= '
             </div>';
-        $btns .= '
-        </div>';
+        }
 
         return $btns;
     }
@@ -507,7 +515,7 @@ class Bosch {
      * @return string
      */
     public function honeypot(){
-        return '<div class="sr-only"><label for="form[hp]">Bot test: If you see this field, leave it blank</label><input name="form[hp]" type="text" value=""></div>';
+        return '<div class="sr-only" style="display:none;"><label for="form[hp]">Bot test: If you see this field, leave it blank</label><input name="form[hp]" type="text" value=""></div>';
     }
 
     /**
@@ -545,6 +553,14 @@ class Bosch {
      * General functions used by Bosch children
      * @package utlity_functions
      */
+    
+    public function has_errors(){
+        if ( !empty(self::$errors) ){
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Convert any string to a variable-type slug
