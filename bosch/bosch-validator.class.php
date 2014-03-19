@@ -1,5 +1,5 @@
 <?php
-class Bosch_Validator{	
+class Bosch_Validator extends Bosch{	
 
 	// Validation rules for execution
 	protected $validation_rules = array();
@@ -226,19 +226,24 @@ class Bosch_Validator{
 					$method = 'validate_'.$rule;
 				}
 
-				if(is_callable(array($this, $method)))
-				{
-					$result = $this->$method($field, $input, $param);
+				try{
+                     if( !is_callable(array($this, $method))){
+                        throw new Exception("Validator method '$method' does not exist.");
+                     }
+
+                    $result = $this->$method($field, $input, $param);
 
 					if(is_array($result)) // Validation Failed
 					{
 						$this->errors[] = $result;
 					}
-				}
-				else
-				{
-					throw new Exception("Validator method '$method' does not exist.");
-				}
+
+                }
+                catch (Exception $e) {
+                    $this->bosch_exception( $e );                   
+                }
+
+				
 			}
 		}
 

@@ -99,6 +99,12 @@ class Bosch_Field extends Bosch{
     public $extras;
 
     /**
+     * After processing, store error message for field here (if applicable)
+     * @var string
+     */
+    protected $error;
+
+    /**
      * Constructor
      * @param array $properties 
      */
@@ -145,17 +151,16 @@ class Bosch_Field extends Bosch{
      *
      * @todo add captcha support
      */
-    public function output_field(){
+    protected function output_field(){
 
         //set default input class
         $input_class = 'form-control';
-        $errors = parent::$errors;
 
         //check of field is required
         in_array('required', explode('|', $this->validate) )? $required = 'required' : $required = '';
 
         //check if the form has been submitted and the field has an error
-        isset($errors) && array_key_exists($this->var, $errors) ? $error = 'has-error' : $error = '';
+        $this->has_error() ? $error = 'has-error' : $error = '';
 
         //set the placeholder value
         isset($this->placeholder) ? $placeholder = $this->placeholder : $placeholder = '';
@@ -175,13 +180,7 @@ class Bosch_Field extends Bosch{
         //add any applicable extras
         isset($this->extras) ? $extras = str_replace('|', ' ', $this->extras) : $extras = '';
 
-        //if this field has already been filled in on a previous step, grab the value
-        if ( isset($_SESSION['storage'][$_SESSION['step']][$this->var]) ){
-            $this->value = $_SESSION['storage'][$_SESSION['step']][$this->var];
-        }
-
-        //if no-save is present, do not repopulate field data on failed submit, but revert to original default value
-        isset($this->value) && !strstr($extras, 'no-save') ? $field_value = $this->value : $field_value = $this->default;
+        $field_value = $this->get_updated_value();        
 
         //set column pre and post HTML if form is set to horizontal
         $input_col_pre = ''; $input_col_post = '';
@@ -244,9 +243,9 @@ class Bosch_Field extends Bosch{
             case 'day' : 
             case 'select' : 
 
-                if ( $this->type == 'state' ) $this->options = parent::states();
-                if ( $this->type == 'month' ) $this->options = parent::months();
-                if ( $this->type == 'day' ) $this->options = parent::days();
+                if ( $this->type == 'state' ) $this->options = $this->states();
+                if ( $this->type == 'month' ) $this->options = $this->months();
+                if ( $this->type == 'day' ) $this->options = $this->days();
 
             echo '
                 <select id="'.$this->var.'" '.$extras.' class="'.$input_class.'" name="form['.$this->var.']">';
@@ -347,5 +346,27 @@ class Bosch_Field extends Bosch{
 
         return;
 
+    }
+
+    protected function has_error(){
+
+        if ( isset($this->error) && $this->error !== '' && !empty($this->error) ){
+            return true;
+        }
+
+        return false;
+    }
+
+    private function get_updated_value(){
+
+        //if this field has already been filled in on a previous step, grab the value
+        if ( isset($_SESSION['storage'][$_SESSION['step']][$this->var]) ){
+            $this->value = $_SESSION['storage'][$_SESSION['step']][$this->var];
+        }
+
+        //if no-save is present, do not repopulate field data on failed submit, but revert to original default value
+        isset($this->value) && !strstr($this->extras, 'no-save') ? $field_value = $this->value : $field_value = $this->default;
+
+        return $field_value;
     }
 }

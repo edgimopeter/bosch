@@ -39,7 +39,7 @@ class Bosch {
      * Array holding errors for this bosch
      * @var array
      */
-    protected static $errors = array();
+    protected $errors = array();
 
     /**
      * After submit, array holding validated data for this bosch indexed by step
@@ -278,7 +278,10 @@ class Bosch {
         //validation failed, merge errors with checkbox errors
         if ( $validated_data === false ){
             $errors = array_merge($errors, $validator->get_readable_errors(false));
-            self::$errors = $errors;
+            $this->errors = $errors;
+            foreach ($errors as $k => $v) {
+                $this->fields[$k]->error = $v;
+            }
             return false;
         }
         
@@ -413,6 +416,18 @@ class Bosch {
         echo '</form>';
 
         return true;
+    }
+
+    public function get_field( $field ){
+
+        if ( array_key_exists($field, $this->fields) ){
+            $field = $this->fields[$field];
+            $field->output_field();
+            return true;
+        }
+
+        $this->bosch_error('No field found with var <code>'.$field.'</code>');
+        return false;
 
     }
 
@@ -425,9 +440,9 @@ class Bosch {
         if ( !$this->has_been_submitted() )
             return false;
 
-        if ( isset(self::$errors) && !empty(self::$errors) ){
+        if ( isset($this->errors) && !empty($this->errors) ){
             echo '<div class="alert alert-danger">';
-                foreach (self::$errors as $error) {
+                foreach ($this->errors as $error) {
                     echo $error . '<br />';
                 }
             echo '</div>';
@@ -523,7 +538,7 @@ class Bosch {
      * @param object $e The exception
      * @return bool
      */
-    private function bosch_exception ( $e ){
+    protected function bosch_exception ( $e ){
         echo '
         <div class="alert alert-danger bosch-exception">
             Exception: <strong>'.$e->getMessage().'</strong><br />
@@ -539,7 +554,7 @@ class Bosch {
      * @param string $text The error text
      * @return bool
      */
-    private function bosch_error ( $text ){
+    protected function bosch_error ( $text ){
         echo '
         <div class="alert alert-danger bosch-error">
            '.$text.'
@@ -555,11 +570,11 @@ class Bosch {
      */
     
     public function has_errors(){
-        if ( !empty(self::$errors) ){
-            return true;
+        if ( empty($this->errors) ){
+            return false;
         }
 
-        return false;
+        return true;
     }
 
     /**
