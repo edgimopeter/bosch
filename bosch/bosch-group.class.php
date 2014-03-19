@@ -11,13 +11,19 @@
 /**
  * Bosch Groups hold one or more Fields
  */
-class Bosch_Group{
+class Bosch_Group extends Bosch{
     
     /**
      * Name of the group to be publicly displayed
      * @var string
      */
     public $name = '';
+
+    /**
+     * Slugified name
+     * @var string
+     */
+    public $var = '';
 
     /**
      * Hide the name
@@ -55,9 +61,21 @@ class Bosch_Group{
      */
     function __construct( $properties = array() ){
 
+        parent::__construct();
+
         foreach ($properties as $k => $v) {
             $this->$k = $v;
-        }        
+        }
+
+        $this->var = parent::slugify( $this->name );
+    }
+
+    protected function init( $new_fields ){
+        $temp = explode('|', $this->fields);
+        $this->fields = array();
+        foreach ($temp as $field_var) {
+            $this->fields[$field_var] = $new_fields[$field_var];
+        }
     }
 
     /**
@@ -67,12 +85,57 @@ class Bosch_Group{
      */
     public function validate_group(){
 
-        $fields = explode('|', $this->fields);
-
         //group must have at least one field associated with it
-        if ( empty($fields) || $fields == false || $fields[0] == '' || empty($fields[0]) ){
+        if ( empty($this->fields) || $this->fields == false ){
             return 'No <code>fields</code> property set for group <code>'.$this->name.'</code>';
         }
         return 'valid';
+    }
+
+    /**
+     * Output a single group
+     *
+     *
+     * @param object $group Group object to output
+     */
+    public function output_group(){
+
+        echo 
+        $this->html_before . '                    
+        <div class="bosch-group group-'.$this->var.'">';
+
+        if ( $this->hide_name === false ){
+            echo '
+            <div class="bosch-heading">
+                '.parent::settings('group-headings') . $this->name . $this->close_tag(parent::settings('group-headings')) .'
+            </div>';
+        }
+
+        echo '            
+            <div class="bosch-group-desc">
+                '.$this->desc.'
+            </div>';
+
+            //cycle through the fields in this group
+            //output the field if possible, throw exception if not
+            foreach ( $this->fields as $field ){
+
+                try{
+                     if ( !array_key_exists($field->var, $this->fields) ){
+                        throw new Exception('Invalid Field <code>'.$field.'</code> in Group <code>'.$this->name.'</code>');
+                     }
+
+                      $field->output_field();
+
+                }
+                catch (Exception $e) {
+                    $this->bosch_exception( $e );                   
+                }
+            }
+
+        echo '
+        </div>'.
+        $this->html_after;
+
     }
 }

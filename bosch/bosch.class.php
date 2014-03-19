@@ -16,38 +16,21 @@
  */
 class Bosch {
 
-    /**
-     * Preset list of states for select fields
-     * @var array
-     */
-    private $states = array("AL" => "Alabama", "AK" => "Alaska", "AZ" => "Arizona", "AR" => "Arkansas", "CA" => "California", "CO" => "Colorado", "CT" => "Connecticut", "DE" => "Delaware", "FL" => "Florida", "GA" => "Georgia", "HI" => "Hawaii", "ID" => "Idaho", "IL" => "Illinois", "IN" => "Indiana", "IA" => "Iowa", "KS" => "Kansas", "KY" => "Kentucky", "LA" => "Louisiana", "ME" => "Maine", "MD" => "Maryland", "MA" => "Massachusetts", "MI" => "Michigan", "MN" => "Minnesota", "MS" => "Mississippi", "MO" => "Missouri", "MT" => "Montana", "NE" => "Nebraska", "NV" => "Nevada", "NH" => "New Hampshire", "NJ" => "New Jersey", "NM" => "New Mexico", "NY" => "New York", "NC" => "North Carolina", "ND" => "North Dakota", "OH" => "Ohio", "OK" => "Oklahoma", "OR" => "Oregon", "PA" => "Pennsylvania", "RI" => "Rhode Island", "SC" => "South Carolina", "SD" => "South Dakota", "TN" => "Tennessee", "TX" => "Texas", "UT" => "Utah", "VT" => "Vermont", "VA" => "Virginia", "WA" => "Washington", "WV" => "West Virginia", "WI" => "Wisconsin", "WY" => "Wyoming");
-
-    /**
-     * Preset list of months for select fields
-     * @var array
-     */
-    private $months = array('jan' => 'January', 'feb' => 'February', 'mar' => 'March', 'apr' => 'April', 'may' => 'May', 'june' => 'June', 'july' => 'July', 'aug' => 'August', 'sep' => 'September', 'oct' => 'October', 'nov' => 'November', 'dec' => 'December');
-
-    /**
-     * Preset list of days for select fields
-     * @var array
-     */
-    private $days = array(1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => '8', 9 => '9', 10 => '10', 11 => '11', 12 => '12', 13 => '13', 14 => '14', 15 => '15', 16 => '16', 17 => '17', 18 => '18', 19 => '19', 20 => '20', 21 => '21', 22 => '22', 23 => '23', 24 => '24', 25 => '25', 26 => '26', 27 => '27', 28 => '28', 29 => '29', 30 => '30', 31 => '31');
     
     /**
-     * Array holding field data for this bosch
+     * Array holding field objects for this bosch
      * @var array
      */
     private $fields = array();
 
     /**
-     * Array holding group data for this bosch
+     * Array holding group objects for this bosch
      * @var array
      */
     private $groups = array();
 
     /**
-     * Array holding step data for this bosch
+     * Array holding step objects for this bosch
      * @var array
      */
     private $steps = array();
@@ -69,7 +52,7 @@ class Bosch {
      * Various form settings
      * @var array
      */
-    private $bosch_settings = array();
+    protected $bosch_settings = array();
 
 
     /**
@@ -115,10 +98,17 @@ class Bosch {
     }
 
     /**
+     * Setup functions
+     * Initialize the form, settings, and data
+     * @package setup_functions
+     */
+
+    /**
      * Set/get for settings
      *
      * @param string $key The name of the setting to set or get
      * @param string $value Optional name of value to set
+     * @return mixed
      */
     public function settings( $key, $value = false ){
 
@@ -129,45 +119,20 @@ class Bosch {
 
         return $this->bosch_settings[$key];
     }
-    
-    /**
-     * Output an exception message
-     *
-     * @param object $e The exception
-     */
-    private function bosch_exception ( $e ){
-        echo '
-        <div class="alert alert-danger bosch-exception">
-            Exception: <strong>'.$e->getMessage().'</strong><br />
-            Found in '.$e->getFile().' on line '.$e->getLine().'<br />
-            Code: <pre>'.$e->getTraceAsString().'</pre>
-        </div>';
-
-        return;
-    }
 
     /**
-     * Output an error message
-     *
-     * @param string $text The error text
+     * Setup the form
+     * Given an array of data, initializes the Bosch form object
+     * Fields array is the only parameter required
+     * 
+     * @param  array  $fields Array of field data
+     * @param  array  $groups Array of group data
+     * @param  array  $steps  Array of step data
+     * @return bool
      */
-    private function bosch_error ( $text ){
-        echo '
-        <div class="alert alert-danger bosch-error">
-           '.$text.'
-        </div>';
+    public function setup( $fields = array(), $groups = array(), $steps = array() ){
 
-        return;
-    }
-
-    /**
-     * Set the fields from a supplied array
-     *
-     * @param array $fields Array of fields
-     */
-    public function set_fields( $fields = array() ){
-
-        //cycle through supplied fields
+        //fields must be supplied, so do those first, converting the array into objects
         foreach ($fields as $k => $v) {
 
             $new_field = new Bosch_Field( $fields[$k] );
@@ -176,8 +141,6 @@ class Bosch {
             if ( array_key_exists($fields[$k]['var'], $this->fields) ){
                 $this->bosch_error('Duplicate <code>var</code> name detected: <code>'.$fields[$k]['var'].'</code>');
             }
-
-            //add new field to the bosch->fields array
             else{
                 $this->fields[$fields[$k]['var']] = $new_field;
 
@@ -191,31 +154,33 @@ class Bosch {
             }
         }
 
-        return;        
-    }
+        //if no groups have been set yet, create a generic group for all fields
+        if ( !isset($groups) || empty($groups) ){
+            foreach ($new_fields as $field) {
+                $field_vars[] = $field->var;
+            }
 
-    /**
-     * Set the groups from a supplied array. Defaults to a single unnamed group.
-     *
-     * @param array $groups Array of groups
-     */
-    public function set_groups( $groups = array() ){
+            $groups = 
+            array( 
+                    'name' => 'generic_group',
+                    'hide_name' => true,
+                    'fields' => implode('|', $field_vars)
+                );
+        }
 
         foreach ($groups as $k => $v) {
 
             $new_group = new Bosch_Group( $groups[$k] );
 
-            //if no name supplied, set it to a blank string
-            if ( !isset($groups[$k]['name']) ){
-                $groups[$k]['name'] = '';
-            }
-
             //check for duplicate group name
-            if ( array_key_exists( $this->slugify($groups[$k]['name']), $this->groups) ){
+            if ( array_key_exists( $this->slugify($new_group->name), $this->groups) ){
                 $this->bosch_error('Duplicate Group Name detected: <code>'.$groups[$k]['name'].'</code>');
             }
             else{
-                $this->groups[$this->slugify($groups[$k]['name'])] = $new_group;
+
+                $new_group->init( $this->fields );
+
+                $this->groups[$this->slugify($new_group->name)] = $new_group;
 
                 $valid_response = $new_group->validate_group();
 
@@ -225,388 +190,31 @@ class Bosch {
             } 
         }
 
-        return;
-    }
+        //if no steps have been set, create a generic step for all groups
+        if ( !isset($steps) || empty($steps) ){
+            foreach ($groups as $group) {
+                $group_names[] = $group['name'];
+            }
 
-    /**
-     * Set the steps from a supplied array. Defaults to a single-step form.
-     *
-     * @param array $steps Array of steps
-     */
-    public function set_steps( $steps = array() ){
-
-        foreach ($steps as $k => $v) {
-            $this->steps[] = new Bosch_Step( $steps[$k] );
+            $this->steps[] = new Bosch_Step( array( 'groups' => implode('|', $group_vars) ) );
+                
         }
-
-        return;
-    }
-
-    
-    private function get_step_fields( $curent_step ){
-
-        $fields = array();
-
-        foreach ( explode('|', $this->steps[$_SESSION['step']]->groups) as $group){
-            foreach ( explode('|', $group->fields) as $field){
-                $fields[] = $field;
+        else{
+            foreach ($steps as $k => $v) {
+                $new_step = new Bosch_Step( $steps[$k] );
+                $new_step->init( $this->groups );
+                $this->steps[] = $new_step;
             }
         }
 
-        return $fields;
-    }
-    
-
-    /**
-     * Output the entire bosch form
-     * @todo finalize multistep buttons
-     */
-    public function output(){
-
-        //if no groups have been set yet, create a generic group for all fields
-        if ( !isset($this->groups) || empty($this->groups) ){
-            foreach ($this->fields as $field) {
-                $field_vars[] = $field->var;
-            }
-
-            $this->set_groups( array(
-                array( 
-                    'name' => 'generic_group',
-                    'hide_name' => true,
-                    'fields' => implode('|', $field_vars) )
-                ) 
-            );
-        }
-
-        //if no steps have been set yet, create a generic step for all groups
-        if ( !isset($this->steps) || empty($this->steps) ){
-            foreach ($this->groups as $group) {
-                $group_vars[] = $group->name;
-            }
-
-            $this->set_steps(array(array('groups' => implode('|', $group_vars))));      
-        }
-
-        //get form type from settings
-        switch ( $this->settings('form-type') ){
-            case 'block' : $class = ''; break;
-            case 'inline' : $class = 'form-inline'; break;
-            case 'horizontal' : $class = 'form-horizontal'; break;
-            default: $class = '';
-        }
-
-        echo '
-        <form role="form" class="bosch-form step-'.$_SESSION['step'].' '.$class.'" method="post">';
-    
-            $this->output_current_step();
-            echo $this->buttons();
-
-        echo '</form>';
-
-        return;
-
-    }
-
-    public function output_current_step(){
-
-        foreach ( explode('|', $this->steps[$_SESSION['step']]->groups) as $group){
-            $this->output_group( $group );               
-        }
+        return true; 
     }
 
     /**
-     * Output a single group
-     *
-     * When called directly with $group as a string, converts the string group name into the corresponding group object
-     *
-     * @param mixed $group Name of group to output, or group object to output
+     * Processing functions
+     * Used by Bosch to process forms and perform state checking
+     * @package processing_functions
      */
-    public function output_group( $group ){
-
-        if ( !is_object($group) ){
-            $group = $this->groups[$this->slugify($group)];
-        }
-
-        //hide the name if set
-        isset($group->hide_name) && $group->hide_name === true ? $heading = '' : $heading = $group->name;
-
-        echo 
-        $group->html_before . '                    
-        <div class="bosch-group group-'.$this->slugify( $group->name ).'">';
-
-        if ( $group->hide_name === false ){
-            echo '
-            <div class="bosch-heading">
-                '.$this->settings('group-headings') . $group->name . $this->close_tag($this->settings('group-headings')) .'
-            </div>';
-        }
-
-        echo '            
-            <div class="bosch-group-desc">
-                '.$group->desc.'
-            </div>';
-
-            //cycle through the fields in this group
-            //output the field if possible, throw exception if not
-            foreach ( explode('|', $group->fields) as $field){
-
-                try{
-                     if ( !array_key_exists($field, $this->fields) ){
-                        throw new Exception('Invalid Field <code>'.$field.'</code> in Group <code>'.$group->name.'</code>');
-                     }
-
-                      $this->output_field( $this->fields[$field] );
-
-                }
-                catch (Exception $e) {
-                    $this->bosch_exception( $e );                   
-                }
-            }
-
-        echo '
-        </div>'.
-        $group->html_after;
-
-    }
-
-    /**
-     * Output a single field
-     *
-     * @param mixed $field Name of field to output, or field object to output
-     * @todo add captcha support
-     */
-    public function output_field( $field ){
-
-        //when called directly by user, convert the string field name into the corresponding field object
-        if ( !is_object($field) ){
-            $field = $this->fields[$this->slugify($field)];
-        }
-
-        //set default input class
-        $input_class = 'form-control';
-
-        //check of field is required
-        in_array('required', explode('|', $field->validate) )? $required = 'required' : $required = '';
-
-        //check if the form has been submitted and the field has an error
-        isset($this->errors) && array_key_exists($field->var, $this->errors) ? $error = 'has-error' : $error = '';
-
-        //set the placeholder value
-        isset($field->placeholder) ? $placeholder = $field->placeholder : $placeholder = '';
-
-        //hide the label if defined by the field variable
-        isset($field->hide_label) && $field->hide_label === true ? $label_class = 'sr-only' : $label_class = '';
-
-        //hide the label if the global setting is true
-        $this->settings('hide-labels') === true ? $label_class = 'sr-only' : $label_class = '';
-
-        //if the field size is set, add it to the input class string
-        isset($field->size) ? $input_class .= ' input-'.$field->size : $input_class .= '';
-
-        //set the description HTML
-        isset($field->desc) ? $desc = '<p class="help-block">'.$field->desc.'</p>' : $desc = '';
-
-        //add any applicable extras
-        isset($field->extras) ? $extras = str_replace('|', ' ', $field->extras) : $extras = '';
-
-        //if no-save is present, do not repopulate field data on failed submit, but revert to original default value
-        isset($field->value) && !strstr($extras, 'no-save') ? $field_value = $field->value : $field_value = $field->default;
-
-        //set column pre and post HTML if form is set to horizontal
-        $input_col_pre = ''; $input_col_post = '';
-        if ( $this->settings('form-type') == 'horizontal' ){
-            isset($field->input_width) ? $col = $field->input_width : $col = $this->settings('input-width');
-            $input_col_pre = '<div class="'.$col.'">';
-            $input_col_post = '</div>';
-            isset($field->label_width) ? $col = $field->label_width : $col = $this->settings('label-width');
-            $label_class .= ' '.$col;
-        }
-
-        //validate the field
-        $valid_response = $field->validate_field();
-
-        //output error and cancel field output if invalid
-        if ( $valid_response !== 'valid' ){
-            $this->bosch_error( $valid_response );
-            return;
-        }
-
-        //begin HTML output
-        echo '
-            <div id="wrap-'.$field->var.'" class="form-group '.$required.' '.$error.'">
-                <label for="form['.$field->var.']" class="control-label '.$label_class.'">
-                   '.$field->name.'
-                </label>'.
-                $input_col_pre;
-
-        switch ( $field->type ){
-
-            case 'text' :
-            case 'password' :
-            case 'date' :
-            case 'time' :
-            case 'week' :
-            case 'number' :
-            case 'email' :
-            case 'url' :
-            case 'search' :
-            case 'tel' :
-            case 'color' :
-
-                echo '<input id="'.$field->var.'" '.$extras.' type="'.$field->type.'" class="'.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$field->var.']" />';
-            break;
-
-            case 'money' : echo '
-                <div class="input-group">
-                    <span class="input-group-addon">$</span>
-                    <input id="'.$field->var.'" '.$extras.' type="number" class="'.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$field->var.']" />
-                    <span class="input-group-addon">.00</span>
-                </div>';
-            break;
-
-            case 'textarea' : echo '
-                <textarea id="'.$field->var.'" '.$extras.' class="'.$input_class.'" rows="'.$field->options.'" name="form['.$field->var.']">'.$field_value.'</textarea>';
-            break;
-
-            case 'state' : 
-            case 'month' : 
-            case 'day' : 
-            case 'select' : 
-
-                if ( $field->type == 'state' ) $field->options = $this->states;
-                if ( $field->type == 'month' ) $field->options = $this->months;
-                if ( $field->type == 'day' ) $field->options = $this->days;
-
-            echo '
-                <select id="'.$field->var.'" '.$extras.' class="'.$input_class.'" name="form['.$field->var.']">';
-                    if ( $placeholder )
-                        echo '<option value="">'.$placeholder.'</option>';
-                    else
-                        echo '<option value="">-- Choose --</option>';
-                    foreach( $field->options as $id => $name ){
-                        $field_value == $id ? $selected = 'selected' : $selected = '';
-                        echo '<option '.$selected.' value="'.$id.'">'.$name.'</option>';
-                    }
-
-                echo 
-                '</select>';
-            break;
-
-            case 'radio-inline' :
-                echo '<div class="radio">';
-                foreach( $field->options as $id => $name ){
-                    $field_value == $id ? $checked = 'checked' : $checked = '';
-                    echo '
-                    <div class="radio-inline">
-                        <label>
-                            <input id="'.$field->var.'-'.$this->slugify($name).'" '.$extras.' type="radio" name="form['.$field->var.']" value="'.$id.'" '.$checked.'>
-                            '.$name.'
-                        </label>
-                    </div>';
-                }
-                echo '</div>';
-
-            break;
-
-            case 'radio' :
-                foreach( $field->options as $id => $name ){
-                    $field_value == $id ? $checked = 'checked' : $checked = '';
-                    echo '
-                    <div class="radio">
-                        <label>
-                            <input id="'.$field->var.'-'.$this->slugify($name).'" '.$extras.' type="radio" name="form['.$field->var.']" value="'.$id.'" '.$checked.'>
-                            '.$name.'
-                        </label>
-                    </div>';
-                }
-
-            break;
-
-            case 'checkbox-inline' :
-            case 'checkbox' :
-
-                if ( $field->type == 'checkbox-inline' ){
-                    $checkbox_pre   = '<div class="checkbox">';
-                    $checkbox_post  = '</div>';
-                    $checkbox_class = 'checkbox-inline';
-                }
-                else{
-                    $checkbox_pre   = '';
-                    $checkbox_post  = '';
-                    $checkbox_class = 'checkbox';
-                }
-
-                //checkbox values always use arrays to allow for multiple checkbox values
-                //if it's a single checkbox, convert it to an array for validating
-                if ( !is_array( $field_value ) ){
-                    $field_value = array( $field_value );
-                } 
-
-                echo $checkbox_pre;
-
-                foreach( $field->options as $id => $name ){
-                    in_array($id, $field_value) ? $checked = 'checked' : $checked = '';
-                    echo '
-                    <div class="'.$checkbox_class.'">
-                        <label>
-                            <input id="'.$field->var.'-'.$this->slugify($name).'" '.$extras.' type="checkbox" name="form['.$field->var.'][]" value="'.$id.'" '.$checked.'>
-                            '.$name.'
-                        </label>
-                    </div>';
-                }
-
-                echo $checkbox_post;
-
-            break;
-
-            case 'captcha':
-                echo 'CAPTCHA';
-                break;
-
-            default : 
-                $this->bosch_error('Invalid type property <code>'.$field->type.'</code> in field <code>'.$field->var.'</code>');
-                break;
-
-        }
-
-        echo 
-        $desc.
-        $input_col_post.
-        '</div>';
-
-        return;
-
-    }
-
-    /**
-     * Check if form has been submitted
-     *
-     * @return bool 
-     */
-    public function has_been_submitted(){
-
-        if ( !isset($_POST['prev']) && !isset($_POST['next']) && !isset($_POST[$this->settings('submit-name')]) )
-            return false;
-
-        return true;
-    }
-
-    /**
-     * Check if the final step has been submitted
-     *
-     * @return bool 
-     */
-    public function final_submit(){
-
-        if ( !isset($_POST[$this->settings('submit-name')]) )
-            return false;
-
-        if ( $_POST[$this->settings('submit-name')] !== $this->settings('submit-value') )
-            return false;
-
-        return true;
-
-    }
 
     /**
      * Process a submitted form
@@ -621,10 +229,18 @@ class Bosch {
         if ( !$this->has_been_submitted() )
             return;
 
+        if ( isset($_POST['prev']) && $_POST['prev'] == 'prev' && $_SESSION['step'] > 0 ){
+            $_SESSION['step']--;
+            return true;
+        }            
+
         $validate = array();
         $filter = array();
+        $errors = array();
 
-        $validator = new Bosch_Validator( $this->fields );
+        $fields = $this->steps[$_SESSION['step']]->get_fields();
+
+        $validator = new Bosch_Validator( $fields );
         $_POST = $validator->sanitize($_POST);
 
         foreach ($_POST['form'] as $k => $v) {
@@ -635,13 +251,13 @@ class Bosch {
                     $_POST['form'][$k] = implode('|', $_POST['form'][$k]);
                 }
 
-                if ( !empty($this->fields[$k]->validate) )
-                    $validate[$k] = $this->fields[$k]->validate;
+                if ( !empty($fields[$k]->validate) )
+                    $validate[$k] = $fields[$k]->validate;
                 
-                if ( !empty($this->fields[$k]->filter) )
-                    $filter[$k] = $this->fields[$k]->filter;
+                if ( !empty($fields[$k]->filter) )
+                    $filter[$k] = $fields[$k]->filter;
 
-                $this->fields[$k]->value = $v;
+                $fields[$k]->value = $v;
             }
         }
 
@@ -652,8 +268,7 @@ class Bosch {
             $validator->filter_rules($filter);
 
         $validated_data = $validator->run($_POST['form']);
-        $errors = array();
-        
+       
         //required checkboxes must be checked manually, as they are not present in the $_POST array
         $missing_checkboxes = $this->validate_required_checkboxes($_POST['form']);
         if ( !empty($missing_checkboxes) ){
@@ -670,19 +285,64 @@ class Bosch {
         
         //no errors, save the validated data and return true
         else{
-            $this->data[$_SESSION['step']] = $validated_data;
 
+            //put the recently submitted data in the $_SESSION['storage'] array in the current step number
+            //eg: $_SESSION['storage'][0][var_name] = value;
             foreach ($validated_data as $k => $v) {
                 $_SESSION['storage'][$_SESSION['step']][$k] = $v;
             }
 
-            if ( isset($_POST['prev']) && $_POST['prev'] == 'prev' )
-                $_SESSION['step']--;
-            if ( isset($_POST['next']) && $_POST['next'] == 'next' )
+            //update the form's stored data to all the submitted data so far
+            //$this->data[0][var_name] = value;
+            foreach ($_SESSION['storage'] as $step_num => $step_array) {
+                foreach ($step_array as $k => $v) {
+                    $this->data[$step_num][$k] = $step_array[$k];
+                }       
+            }
+
+            if ( isset($_POST['next']) && $_POST['next'] == 'next' && ($_SESSION['step'] + 1) < count( $this->steps )  )
                 $_SESSION['step']++;
 
             return true;
         }
+    }
+
+    /**
+     * Reset the form to the first step and clear stored data
+     * @return bool
+     */
+    public function reset(){
+        $_SESSION['step'] = 0;
+        unset($_SESSION['storage']);
+        return true;
+    }
+
+    /**
+     * Check if form has been submitted, either final submit or prev/next step
+     * @return bool 
+     */
+    public function has_been_submitted(){
+
+        if ( !isset($_POST['prev']) && !isset($_POST['next']) && !isset($_POST[$this->settings('submit-name')]) )
+            return false;
+
+        return true;
+    }
+
+    /**
+     * Check if the final step has been submitted
+     * @return bool 
+     */
+    public function final_submit(){
+
+        if ( !isset($_POST[$this->settings('submit-name')]) )
+            return false;
+
+        if ( $_POST[$this->settings('submit-name')] !== $this->settings('submit-value') )
+            return false;
+
+        return true;
+
     }
 
     /**
@@ -695,8 +355,9 @@ class Bosch {
     private function validate_required_checkboxes( $post_data ){
 
         $missing = array();
+        $fields = $this->steps[$_SESSION['step']]->get_fields();
 
-        foreach ($this->fields as $field) {
+        foreach ($fields as $field) {
             if ( $field->type == 'checkbox' || $field->type == 'checkbox-inline' ){
                 if ( !array_key_exists($field->var, $post_data) && strstr($field->validate, 'required') ){
                     $missing[$field->var] = 'The '.$field->name.' field is required';
@@ -707,14 +368,59 @@ class Bosch {
         return $missing;
     }
 
+
+    /**
+     * Check if the honeypot field has data
+     * @return bool
+     */
+    public function blank_honeypot(){
+        if ( isset($this->data['hp']) && !empty($this->data['hp']) && $this->data['hp'] !== '' ){
+            return false;
+        }
+
+        return true;
+    }    
+
+    /**
+     * Output functions
+     * Used to output form elements, usually public
+     * @package output_functions
+     */
+    
+    /**
+     * Output the entire bosch form
+     *  @return bool
+     */
+    public function output(){
+
+        //get form type from settings
+        switch ( $this->settings('form-type') ){
+            case 'block' : $class = ''; break;
+            case 'inline' : $class = 'form-inline'; break;
+            case 'horizontal' : $class = 'form-horizontal'; break;
+            default: $class = '';
+        }
+
+        echo '
+        <form role="form" class="bosch-form step-'.$_SESSION['step'].' '.$class.'" method="post">';
+    
+            $this->steps[$_SESSION['step']]->output_step();
+            echo $this->get_buttons();
+
+        echo '</form>';
+
+        return true;
+
+    }
+
     /**
      * Outputs any errors after $this->process has been called
-     *
+     * @return bool
      */
     public function output_errors(){
 
         if ( !$this->has_been_submitted() )
-            return;
+            return false;
 
         if ( isset($this->errors) && !empty($this->errors) ){
             echo '<div class="alert alert-danger">';
@@ -723,58 +429,41 @@ class Bosch {
                 }
             echo '</div>';
 
-            return;
+            return true;
         }
     }
-
+    
     /**
-     * Check if the honeypot field has data
-     * @return bool
-     *
-     */
-    function blank_honeypot(){
-        if ( isset($this->data['hp']) && !empty($this->data['hp']) && $this->data['hp'] !== '' ){
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Output the buttons
+     * Get HTML for the buttons
      * @return string
      */
-    public function buttons(){
+    public function get_buttons(){
 
         $btns = '
         <div class="row">';
-
-        //last step
-        if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
-            if ( $this->settings('honeypot') ){
-                $btns .= $this->honeypot();
-            }
-
-            $btns .= $this->submit_button();
-        }
-        else{
             $btns .= '
             <div class="col-md-6">';
-                //check if the form is set to display previous button
                 if ( $this->steps[$_SESSION['step']]->prev === true ){
                     $btns .= $this->previous_button();
                 }
                 $btns .= '
             </div>
             <div class="col-md-6">';
-            //check if the form is set to display next button
-                if ( $this->steps[$_SESSION['step']]->next === true ){
-                    $btns .= $this->next_button();
+                if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
+                    if ( $this->settings('honeypot') ){
+                        $btns .= $this->honeypot();
+                    }
+
+                    $btns .= $this->submit_button();
                 }
+                else{
+                    if ( $this->steps[$_SESSION['step']]->next === true ){
+                        $btns .= $this->next_button();
+                    }
+                }
+                
                 $btns .= '
             </div>';
-        }
-
         $btns .= '
         </div>';
 
@@ -822,12 +511,47 @@ class Bosch {
     }
 
     /**
+     * Output an exception message
+     * @param object $e The exception
+     * @return bool
+     */
+    private function bosch_exception ( $e ){
+        echo '
+        <div class="alert alert-danger bosch-exception">
+            Exception: <strong>'.$e->getMessage().'</strong><br />
+            Found in '.$e->getFile().' on line '.$e->getLine().'<br />
+            Code: <pre>'.$e->getTraceAsString().'</pre>
+        </div>';
+
+        return true;
+    }
+
+    /**
+     * Output an error message
+     * @param string $text The error text
+     * @return bool
+     */
+    private function bosch_error ( $text ){
+        echo '
+        <div class="alert alert-danger bosch-error">
+           '.$text.'
+        </div>';
+
+        return true;
+    }
+
+    /**
+     * Utility functions
+     * General functions used by Bosch children
+     * @package utlity_functions
+     */
+
+    /**
      * Convert any string to a variable-type slug
      * @param string $text The string to be converted
      * @return string
-     *
      */
-    private function slugify($text){ 
+    protected function slugify($text){ 
         $text = preg_replace('~[^\\pL\d]+~u', '-', $text);
         $text = trim($text, '-');
         $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
@@ -845,9 +569,8 @@ class Bosch {
      * Close an HTML tag
      * @param string $tag The tag to be closed, e.g. '<h3>' or '<p>'
      * @return string
-     *
      */
-    private function close_tag( $tag ){ 
+    protected function close_tag( $tag ){ 
         if ( $tag == '' )
             return;
 
@@ -857,5 +580,30 @@ class Bosch {
         $out .= $temp; 
         return $out; 
     }
+
+    /**
+     * Array of states for select fields
+     * @return array
+     */
+    protected function states(){
+        return array("AL" => "Alabama", "AK" => "Alaska", "AZ" => "Arizona", "AR" => "Arkansas", "CA" => "California", "CO" => "Colorado", "CT" => "Connecticut", "DE" => "Delaware", "FL" => "Florida", "GA" => "Georgia", "HI" => "Hawaii", "ID" => "Idaho", "IL" => "Illinois", "IN" => "Indiana", "IA" => "Iowa", "KS" => "Kansas", "KY" => "Kentucky", "LA" => "Louisiana", "ME" => "Maine", "MD" => "Maryland", "MA" => "Massachusetts", "MI" => "Michigan", "MN" => "Minnesota", "MS" => "Mississippi", "MO" => "Missouri", "MT" => "Montana", "NE" => "Nebraska", "NV" => "Nevada", "NH" => "New Hampshire", "NJ" => "New Jersey", "NM" => "New Mexico", "NY" => "New York", "NC" => "North Carolina", "ND" => "North Dakota", "OH" => "Ohio", "OK" => "Oklahoma", "OR" => "Oregon", "PA" => "Pennsylvania", "RI" => "Rhode Island", "SC" => "South Carolina", "SD" => "South Dakota", "TN" => "Tennessee", "TX" => "Texas", "UT" => "Utah", "VT" => "Vermont", "VA" => "Virginia", "WA" => "Washington", "WV" => "West Virginia", "WI" => "Wisconsin", "WY" => "Wyoming");
+    }
+
+    /**
+     * Array of months for select fields
+     * @return array
+     */
+    protected function months(){
+        return array('jan' => 'January', 'feb' => 'February', 'mar' => 'March', 'apr' => 'April', 'may' => 'May', 'june' => 'June', 'july' => 'July', 'aug' => 'August', 'sep' => 'September', 'oct' => 'October', 'nov' => 'November', 'dec' => 'December');
+    }
+
+    /**
+     * Array of days for select fields
+     * @return array 
+     */
+    protected function days(){
+        return array(1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => '8', 9 => '9', 10 => '10', 11 => '11', 12 => '12', 13 => '13', 14 => '14', 15 => '15', 16 => '16', 17 => '17', 18 => '18', 19 => '19', 20 => '20', 21 => '21', 22 => '22', 23 => '23', 24 => '24', 25 => '25', 26 => '26', 27 => '27', 28 => '28', 29 => '29', 30 => '30', 31 => '31');
+    }
+
 }
 

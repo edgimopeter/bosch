@@ -184,8 +184,6 @@
 
                     $this_form->process();
 
-
-
                     if ( !empty($this_form->errors) ){
                         $this_form->output_errors();
                     }
@@ -193,12 +191,11 @@
 
                         if( $this_form->final_submit() && $this_form->blank_honeypot() ){
                             var_dump($this_form->data);
+                            $this_form->reset();
                             echo '<div class="alert alert-success">Thank you! We will be in touch with you shortly!</div>';
                         }
                     }
-                }
-
-                var_dump($_SESSION);    
+                }  
 
                 $this_form->output();
 
