@@ -52,50 +52,40 @@ class Bosch {
      * Various form settings
      * @var array
      */
-    protected $bosch_settings = array();
+    private static $bosch_settings = array(
+        //this will wrap group headings
+        'group-headings' => '<h2>',
 
+        //block, inline, or horizontal
+        'form-type' => 'block',
 
-    /**
-     * Default constructor to generate default settings
-     */
-    public function __construct() {
-        
-        $this->bosch_settings = 
-            array(
-                //this will wrap group headings
-                'group-headings' => '<h2>',
+        //if horizontal, default column width for inputs
+        'input-width' => 'col-md-10',
 
-                //block => inline => or horizontal
-                'form-type' => 'block',
+        //if horiztonal, default column width for labels
+        'label-width' => 'col-md-2',
 
-                //if horizontal => default column width for inputs
-                'input-width' => 'col-md-10',
+        //CSS class(es) applied to submit button
+        'submit-class' => 'btn btn-primary',
 
-                //if horiztonal => default column width for labels
-                'label-width' => 'col-md-2',
+        //CSS class(es) applied to prev and next buttons
+        'nav-class' => 'btn btn-info',
 
-                //CSS class(es) applied to submit button
-                'submit-class' => 'btn btn-primary',
+        //value applied to submit button
+        'submit-value' => 'Submit',
 
-                //CSS class(es) applied to prev and next buttons
-                'nav-class' => 'btn btn-info',
+        //name applied to submit button
+        'submit-name' => 'submit',
 
-                //value applied to submit button
-                'submit-value' => 'Submit',
+        //hide labels => true or false
+        'hide-labels' => false,
 
-                //name applied to submit button
-                'submit-name' => 'submit',
+        //use honeypot for captcha, true or false
+        'honeypot' => true,
 
-                //hide labels => true or false
-                'hide-labels' => false,
-
-                //use honeypot for captcha, true or false
-                'honeypot' => true,
-
-                //show debug info
-                'debug' => false
-            );
-    }
+        //show debug info
+        'debug' => false
+    );
 
     /**
      * Setup functions
@@ -112,12 +102,22 @@ class Bosch {
      */
     public function settings( $key, $value = false ){
 
-        if ( $value ){
-            $this->bosch_settings[$key] = $value;
-            return true;
-        }
+        try{
+             if ( !array_key_exists($key, self::$bosch_settings) ){
+                throw new Exception('Invalid Settings Key: <code>'.$key.'</code>');
+             }
 
-        return $this->bosch_settings[$key];
+             if ( $value ){
+                self::$bosch_settings[$key] = $value;
+                return true;
+            }
+
+            return self::$bosch_settings[$key];
+
+        }
+        catch (Exception $e) {
+            $this->bosch_exception( $e );                   
+        }
     }
 
     /**
@@ -408,12 +408,13 @@ class Bosch {
         }
 
         echo '
-        <form role="form" class="bosch-form step-'.$_SESSION['step'].' '.$class.'" method="post">';
+        <form role="form" class="bosch-form step-'.$_SESSION['step'].' '.$class.'" method="post">
+            <div class="row">';
     
             $this->steps[$_SESSION['step']]->output_step();
             echo $this->get_buttons();
 
-        echo '</form>';
+        echo '</div></form>';
 
         return true;
     }
@@ -458,35 +459,32 @@ class Bosch {
     public function get_buttons(){
 
         if ( count( $this->steps ) === 1 ){
-            $btns = '<div class="row"><div class="col-md-12">'.$this->submit_button().'</div></div>';
+            $btns = '<div class="col-md-12">'.$this->submit_button().'</div>';
         }
         else{
-            $btns = '
-            <div class="row">';
-                $btns .= '
-                <div class="col-md-6">';
-                    if ( $this->steps[$_SESSION['step']]->prev === true ){
-                        $btns .= $this->previous_button();
-                    }
-                    $btns .= '
-                </div>
-                <div class="col-md-6">';
-                    if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
-                        if ( $this->settings('honeypot') ){
-                            $btns .= $this->honeypot();
-                        }
-
-                        $btns .= $this->submit_button();
-                    }
-                    else{
-                        if ( $this->steps[$_SESSION['step']]->next === true ){
-                            $btns .= $this->next_button();
-                        }
-                    }
-                    
-                    $btns .= '
-                </div>';
+            $btns = '';
             $btns .= '
+            <div class="col-md-6">';
+                if ( $this->steps[$_SESSION['step']]->prev === true ){
+                    $btns .= $this->previous_button();
+                }
+                $btns .= '
+            </div>
+            <div class="col-md-6">';
+                if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
+                    if ( $this->settings('honeypot') ){
+                        $btns .= $this->honeypot();
+                    }
+
+                    $btns .= $this->submit_button();
+                }
+                else{
+                    if ( $this->steps[$_SESSION['step']]->next === true ){
+                        $btns .= $this->next_button();
+                    }
+                }
+                
+                $btns .= '
             </div>';
         }
 

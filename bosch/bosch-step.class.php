@@ -26,9 +26,7 @@ class Bosch_Step extends Bosch{
      * @param array $properties 
      */
     function __construct( $properties = array() ){
-
-        parent::__construct();
-
+        
         foreach ($properties as $k => $v) {
             $this->$k = $v;
         }        

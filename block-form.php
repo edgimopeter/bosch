@@ -5,44 +5,42 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title></title>
+        <title>Simple Form Test</title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="css/bootstrap.css">
-        <link rel="stylesheet" href="css/bosch.css">
-        <script src="js/jquery.min.js"></script>
-        <script type="text/javascript" src="js/modernizr.js"></script>
-        <script type="text/javascript" src="js/functions.js"></script>
+        <link rel="stylesheet" href="bosch/css/bosch.css">
+        <script src="bosch/js/jquery.min.js"></script>
+        <script src="bosch/js/modernizr.js"></script>
+        <script src="bosch/js/functions.js"></script>
     </head>
     <body>
     	
         <?php 
         
         $this_form = new Bosch;
+        $this_form->settings('form-type', 'block');
+        //$this_form->settings('input-width', 'col-sm-5');
+        //$this_form->settings('label-width', 'col-sm-1');
 
-        $fields = 
-        array(
+        include ( 'example-fields.php' );
+
+        $groups = array(array('name' => 'Group 1', 'fields' => 'file'));
+
+        /*$groups = array(
             array(
-            'var'         => 'name', 
-            'name'        => 'Name', 
-            'type'        => 'text',
-            'desc'        => 'Please enter your name',
-            'validate'    => 'required',
-            'filter'      => 'trim|sanitize_string',
-            'placeholder' => 'Enter your name'
+                'name' => 'Group 1',
+                'fields' => 'name|email|password|date|time|week',
+                'desc' => 'This is the first group',
+                'width' => 'col-md-3'
             ),
             array(
-            'var'         => 'email', 
-            'name'        => 'Email', 
-            'type'        => 'email',
-            'desc'        => 'Please enter your email address',
-            'validate'    => 'required',
-            'filter'      => 'trim|sanitize_string',
-            'extras'      => ''
+                'name' => 'Group 2',
+                'fields' => 'amount|website|search|tel|color|file',
+                'width' => 'col-md-9'
             )
-        );
+        );*/
 
-        $this_form->setup( $fields );
+        $this_form->setup( $fields, $groups );
 
         ?>
 
@@ -73,17 +71,9 @@
                     }
                 }
 
-                //$this_form->output();
-                //
+                $this_form->output();
+                
                 ?>
-
-                <form class="form" method="post">
-                    <?php
-                $this_form->get_field('name');
-                $this_form->get_field('email');
-                echo $this_form->submit_button();
-                ?>
-            </form>
 
             </div>
 

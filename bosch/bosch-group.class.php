@@ -47,21 +47,25 @@ class Bosch_Group extends Bosch{
      * HTML to process before group
      * @var string
      */
-    public $html_before;
+    public $html_before = '';
     
     /**
      * HTML to process after group
      * @var string
      */
-    public $html_after;
+    public $html_after = '';
+
+    /**
+     * Columnd width for group
+     * @var string
+     */
+    public $width = 'col-md-12';
 
     /**
      * Constructor
      * @param array $properties 
      */
     function __construct( $properties = array() ){
-
-        parent::__construct();
 
         foreach ($properties as $k => $v) {
             $this->$k = $v;
@@ -101,39 +105,43 @@ class Bosch_Group extends Bosch{
     public function output_group(){
 
         echo 
-        $this->html_before . '                    
-        <div class="bosch-group group-'.$this->var.'">';
+        $this->html_before . '
+        <div class="'.$this->width.'">
+            <div class="bosch-group group-'.$this->var.'">';
 
-        if ( $this->hide_name === false ){
+                if ( $this->hide_name === false ){
+                    echo '
+                    <div class="bosch-heading">
+                        '.parent::settings('group-headings') . $this->name . $this->close_tag(parent::settings('group-headings')) .'
+                    </div>';
+                }
+
+                if ( $this->desc !== '' ){
+                    echo '            
+                    <div class="bosch-group-desc">
+                        '.$this->desc.'
+                    </div>';
+                }
+
+                //cycle through the fields in this group
+                //output the field if possible, throw exception if not
+                foreach ( $this->fields as $field ){
+
+                    try{
+                         if ( !array_key_exists($field->var, $this->fields) ){
+                            throw new Exception('Invalid Field <code>'.$field.'</code> in Group <code>'.$this->name.'</code>');
+                         }
+
+                          $field->output_field();
+
+                    }
+                    catch (Exception $e) {
+                        $this->bosch_exception( $e );                   
+                    }
+                }
+
             echo '
-            <div class="bosch-heading">
-                '.parent::settings('group-headings') . $this->name . $this->close_tag(parent::settings('group-headings')) .'
-            </div>';
-        }
-
-        echo '            
-            <div class="bosch-group-desc">
-                '.$this->desc.'
-            </div>';
-
-            //cycle through the fields in this group
-            //output the field if possible, throw exception if not
-            foreach ( $this->fields as $field ){
-
-                try{
-                     if ( !array_key_exists($field->var, $this->fields) ){
-                        throw new Exception('Invalid Field <code>'.$field.'</code> in Group <code>'.$this->name.'</code>');
-                     }
-
-                      $field->output_field();
-
-                }
-                catch (Exception $e) {
-                    $this->bosch_exception( $e );                   
-                }
-            }
-
-        echo '
+            </div>
         </div>'.
         $this->html_after;
 

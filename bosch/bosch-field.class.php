@@ -110,8 +110,6 @@ class Bosch_Field extends Bosch{
      */
     function __construct( $properties = array() ){
 
-        parent::__construct();
-
         foreach ($properties as $k => $v) {
             $this->$k = $v;
         }        
@@ -151,7 +149,7 @@ class Bosch_Field extends Bosch{
      *
      * @todo add captcha support
      */
-    protected function output_field(){
+    public function output_field(){
 
         //set default input class
         $input_class = 'form-control';
@@ -169,7 +167,7 @@ class Bosch_Field extends Bosch{
         isset($this->hide_label) && $this->hide_label === true ? $label_class = 'sr-only' : $label_class = '';
 
         //hide the label if the global setting is true
-        $this->settings('hide-labels') === true ? $label_class = 'sr-only' : $label_class = '';
+        parent::settings('hide-labels') === true ? $label_class = 'sr-only' : $label_class = '';
 
         //if the field size is set, add it to the input class string
         isset($this->size) ? $input_class .= ' input-'.$this->size : $input_class .= '';
@@ -184,11 +182,11 @@ class Bosch_Field extends Bosch{
 
         //set column pre and post HTML if form is set to horizontal
         $input_col_pre = ''; $input_col_post = '';
-        if ( $this->settings('form-type') == 'horizontal' ){
-            isset($this->input_width) ? $col = $this->input_width : $col = $this->settings('input-width');
+        if ( parent::settings('form-type') == 'horizontal' ){
+            isset($this->input_width) ? $col = $this->input_width : $col = parent::settings('input-width');
             $input_col_pre = '<div class="'.$col.'">';
             $input_col_post = '</div>';
-            isset($this->label_width) ? $col = $this->label_width : $col = $this->settings('label-width');
+            isset($this->label_width) ? $col = $this->label_width : $col = parent::settings('label-width');
             $label_class .= ' '.$col;
         }
 
@@ -329,6 +327,24 @@ class Bosch_Field extends Bosch{
 
             break;
 
+            case 'file':
+                echo '
+                <span class="btn btn-success fileinput-button">
+                    <i class="glyphicon glyphicon-plus"></i>
+                    <span>Add files...</span>
+                    <!-- The file input field used as target for the file upload widget -->
+                    <input id="fileupload" type="file" name="files[]" multiple>
+                </span>
+                <br>
+                <br>
+                <!-- The global progress bar -->
+                <div id="progress" class="progress">
+                    <div class="progress-bar progress-bar-success"></div>
+                </div>
+                <!-- The container for the uploaded files -->
+                <div id="files" class="files"></div>';
+                break;
+
             case 'captcha':
                 echo 'CAPTCHA';
                 break;
@@ -336,7 +352,6 @@ class Bosch_Field extends Bosch{
             default : 
                 $this->bosch_error('Invalid type property <code>'.$this->type.'</code> in field <code>'.$this->var.'</code>');
                 break;
-
         }
 
         echo 
