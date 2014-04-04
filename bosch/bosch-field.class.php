@@ -104,6 +104,8 @@ class Bosch_Field extends Bosch{
      */
     protected $error;
 
+    private $valid_field_keys = array('var','name','type','options','desc','default','validate','filter','placeholder','hide_label','size','input_width','label_width','extras');
+
     /**
      * Constructor
      * @param array $properties 
@@ -112,6 +114,9 @@ class Bosch_Field extends Bosch{
 
         foreach ($properties as $k => $v) {
             $this->$k = $v;
+            if ( !in_array($k, $this->valid_field_keys) ){
+                $this->bosch_error('Invalid field <code>var</code> detected: <code>'.$k.'</code>');
+            }
         }        
     }
 
@@ -328,21 +333,7 @@ class Bosch_Field extends Bosch{
             break;
 
             case 'file':
-                echo '
-                <span class="btn btn-success fileinput-button">
-                    <i class="glyphicon glyphicon-plus"></i>
-                    <span>Add files...</span>
-                    <!-- The file input field used as target for the file upload widget -->
-                    <input id="fileupload" type="file" name="files[]" multiple>
-                </span>
-                <br>
-                <br>
-                <!-- The global progress bar -->
-                <div id="progress" class="progress">
-                    <div class="progress-bar progress-bar-success"></div>
-                </div>
-                <!-- The container for the uploaded files -->
-                <div id="files" class="files"></div>';
+                echo '<input id="'.$this->var.'" '.$extras.' type="file" class="'.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$this->var.']" />';
                 break;
 
             case 'captcha':

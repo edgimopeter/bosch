@@ -139,7 +139,7 @@ class Bosch {
 
             //check if the var has already been used
             if ( array_key_exists($fields[$k]['var'], $this->fields) ){
-                $this->bosch_error('Duplicate <code>var</code> name detected: <code>'.$fields[$k]['var'].'</code>');
+                $this->bosch_error('Duplicate field <code>var</code> name detected: <code>'.$fields[$k]['var'].'</code>');
             }
             else{
                 $this->fields[$fields[$k]['var']] = $new_field;
@@ -407,8 +407,10 @@ class Bosch {
             default: $class = '';
         }
 
+        $this->has_file_inputs() ? $enc = 'enctype="multipart/form-data"' : $enc = '';
+
         echo '
-        <form role="form" class="bosch-form step-'.$_SESSION['step'].' '.$class.'" method="post">
+        <form role="form" class="bosch-form step-'.$_SESSION['step'].' '.$class.'" method="post" '.$enc.'>
             <div class="row">';
     
             $this->steps[$_SESSION['step']]->output_step();
@@ -567,6 +569,16 @@ class Bosch {
      * @package utlity_functions
      */
     
+    private function has_file_inputs(){
+        
+        foreach ($this->fields as $field) {
+            if ( $field->type == 'file' )
+                return true;
+        }
+
+        return false;
+    }
+
     public function has_errors(){
         if ( empty($this->errors) ){
             return false;
