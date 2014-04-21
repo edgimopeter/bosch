@@ -310,6 +310,22 @@ class Bosch {
     }
 
     /**
+     * Public method to manually add an error to a form field
+     * @return bool
+     */
+    public function set_error( $field, $message ){
+
+        if ( !array_key_exists($field, $this->fields) ){
+            $this->bosch_error( 'Cannot call <code>set_error</code> on non-existant field <code>'.$field.'</code>' );
+            return false;
+        }
+
+        $this->errors[$field] = $message;
+        $this->fields[$field]->error = $message;
+        return true;
+    }
+
+    /**
      * Reset the form to the first step and clear stored data
      * @return bool
      */
@@ -461,7 +477,13 @@ class Bosch {
     public function get_buttons(){
 
         if ( count( $this->steps ) === 1 ){
-            $btns = '<div class="col-md-12">'.$this->submit_button().'</div>';
+            
+            if ( $this->settings('form-type') == 'horizontal' ){
+                $btns = '<div class="'.$this->settings('label-width').'"></div><div class="'.$this->settings('input-width').'">'.$this->submit_button().'</div>';
+            }
+            else{
+                $btns = '<div class="col-md-12">'.$this->submit_button().'</div>';
+            }
         }
         else{
             $btns = '';
