@@ -14,6 +14,10 @@
 		include_once('bosch.class.php');
 	}
 
+	if ( !class_exists('Bosch_Button') ){
+		include_once('bosch-button.class.php');
+	}
+
 	if ( !class_exists('Bosch_Step') ){
 		include_once('bosch-step.class.php');
 	}

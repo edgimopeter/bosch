@@ -99,12 +99,24 @@ class Bosch_Field extends Bosch{
     public $extras;
 
     /**
+     * HTML to process before field
+     * @var string
+     */
+    public $html_before = '';
+    
+    /**
+     * HTML to process after field
+     * @var string
+     */
+    public $html_after = '';
+
+    /**
      * After processing, store error message for field here (if applicable)
      * @var string
      */
     protected $error;
 
-    private $valid_field_keys = array('var','name','type','options','desc','default','validate','filter','placeholder','hide_label','size','input_width','label_width','extras');
+    private $valid_field_keys = array('var','name','type','options','desc','default','validate','filter','placeholder','hide_label','size','input_width','label_width','extras', 'html_before', 'html_after');
 
     /**
      * Constructor
@@ -115,7 +127,7 @@ class Bosch_Field extends Bosch{
         foreach ($properties as $k => $v) {
             $this->$k = $v;
             if ( !in_array($k, $this->valid_field_keys) ){
-                $this->bosch_error('Invalid field <code>var</code> detected: <code>'.$k.'</code>');
+                $this->bosch_error('Invalid field variable detected: <code>'.$k.'</code>');
             }
         }        
     }
@@ -205,12 +217,17 @@ class Bosch_Field extends Bosch{
         }
 
         //begin HTML output
-        echo '
-            <div id="wrap-'.$this->var.'" class="form-group '.$required.' '.$error.'">
+        echo 
+        $this->html_before.
+        '<div id="wrap-'.$this->var.'" class="form-group '.$required.' '.$error.'">';
+            if ( $this->name !== '' ){
+                echo '
                 <label for="form['.$this->var.']" class="control-label '.$label_class.'">
                    '.$this->name.'
-                </label>'.
-                $input_col_pre;
+                </label>';
+            }
+
+            echo $input_col_pre;
 
         switch ( $this->type ){
 
@@ -225,8 +242,10 @@ class Bosch_Field extends Bosch{
             case 'search' :
             case 'tel' :
             case 'color' :
+            case 'hidden' :
 
-                echo '<input id="'.$this->var.'" '.$extras.' type="'.$this->type.'" class="'.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$this->var.']" />';
+                echo '
+                <input id="'.$this->var.'" '.$extras.' type="'.$this->type.'" class="'.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$this->var.']" />';
             break;
 
             case 'money' : echo '
@@ -348,7 +367,8 @@ class Bosch_Field extends Bosch{
         echo 
         $desc.
         $input_col_post.
-        '</div>';
+        '</div>'.
+        $this->html_after;
 
         return;
 

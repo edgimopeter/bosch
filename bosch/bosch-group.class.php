@@ -146,4 +146,19 @@ class Bosch_Group extends Bosch{
         $this->html_after;
 
     }
+
+    /**
+     * Remove a single field from the group
+     * @param  string $field Var name of field to remove
+     * @return bool True on success, false on failure
+     */
+    protected function remove_field($field){
+
+        if ( !array_key_exists($field, $this->fields) ){            
+            return false;
+        }
+
+        unset( $this->fields[$field] );
+        return true;
+    }
 }

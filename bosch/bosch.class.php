@@ -42,6 +42,13 @@ class Bosch {
     protected $errors = array();
 
     /**
+     * Array holding buttons
+     * Always includes the default 3 buttons - prev, next, and submit
+     * @var array
+     */
+    private $buttons = array();
+
+    /**
      * After submit, array holding validated data for this bosch indexed by step
      * $data[0]['var_name'];
      * @var array
@@ -76,6 +83,18 @@ class Bosch {
 
         //name applied to submit button
         'submit-name' => 'submit',
+
+        //name applied to next button
+        'next-name' => 'next',
+
+        //name applied to next button
+        'next-value' => 'Continue',
+
+        //name applied to next button
+        'prev-name' => 'prev',
+
+        //name applied to prev button
+        'prev-value' => 'Go Back',
 
         //hide labels => true or false
         'hide-labels' => false,
@@ -130,7 +149,7 @@ class Bosch {
      * @param  array  $steps  Array of step data
      * @return bool
      */
-    public function setup( $fields = array(), $groups = array(), $steps = array() ){
+    public function setup( $fields = array(), $groups = array(), $steps = array(), $buttons = array() ){
 
         //fields must be supplied, so do those first, converting the array into objects
         foreach ($fields as $k => $v) {
@@ -206,6 +225,41 @@ class Bosch {
             $this->steps[] = $new_step;
         }
 
+        //Setup default buttons
+        $this->buttons['submit'] = new Bosch_Button(
+        array(
+            'name'  => $this->settings('submit-name'),
+            'var'   => 'submit',
+            'value' => $this->settings('submit-value'),
+            'class' => $this->settings('submit-class'),
+            'type'  => 'submit'
+        ));
+
+        $this->buttons['prev'] = new Bosch_Button(
+        array(
+            'name'  => $this->settings('prev-name'),
+            'var'   => 'prev',
+            'value' => $this->settings('prev-value'),
+            'class' => 'btn btn-info',
+            'type'  => 'prev'
+        ));
+
+        $this->buttons['next'] = new Bosch_Button(
+        array(
+            'name'  => $this->settings('next-name'),
+            'var'   => 'next',
+            'value' => $this->settings('next-value'),
+            'class' => 'btn btn-info',
+            'type'  => 'next'
+        ));
+
+        if ( isset($buttons) && !empty($buttons) ){
+            foreach ($steps as $k => $v) {
+                $new_button = new Bosch_Button( $buttons[$k] );
+                $this->buttons[$new_button->var] = $new_button;
+            }
+        }
+
         return true; 
     }
 
@@ -228,7 +282,7 @@ class Bosch {
         if ( !$this->has_been_submitted() )
             return;
 
-        if ( isset($_POST['prev']) && $_POST['prev'] == 'prev' && $_SESSION['step'] > 0 ){
+        if ( isset($_POST[$this->settings('prev-name')]) && $_POST[$this->settings('prev-name')] == $this->settings('prev-value') && $_SESSION['step'] > 0 ){
             $_SESSION['step']--;
             return true;
         }            
@@ -302,11 +356,38 @@ class Bosch {
                 }       
             }
 
-            if ( isset($_POST['next']) && $_POST['next'] == 'next' && ($_SESSION['step'] + 1) < count( $this->steps )  )
+            if ( isset($_POST[$this->settings('next-name')]) && $_POST[$this->settings('next-name')] == $this->settings('next-value') && ($_SESSION['step'] + 1) < count( $this->steps )  )
                 $_SESSION['step']++;
 
             return true;
         }
+    }
+
+    /**
+     * Remove a given field from a given group
+     * @param  string $field Var name of field to remove
+     * @param  string $group Name of group to remove
+     * @return bool
+     */
+    public function remove_from_group( $field, $group ){
+
+        $group_var = $this->slugify($group);
+        
+        if ( !array_key_exists($group_var, $this->groups) ){
+            $this->bosch_error('Group <code>'.$group_var.'</code> does not exist. Cannot remove from this group.');
+            return false;
+        }
+
+        $group = $this->groups[$group_var];
+        $success = $group->remove_field($field);
+
+        if ( $success ){
+            return true;
+        }
+
+        $this->bosch_error('Field <code>'.$field.'</code> does not exist in group <code>'.$group_var.'</code>. Cannot remove from group.');
+        return false;        
+
     }
 
     /**
@@ -345,10 +426,14 @@ class Bosch {
      */
     public function has_been_submitted(){
 
-        if ( !isset($_POST['prev']) && !isset($_POST['next']) && !isset($_POST[$this->settings('submit-name')]) )
-            return false;
+        $found = false;
 
-        return true;
+        foreach ($this->buttons as $button) {
+            if ( isset($_POST[$button->name]) )
+                $found = true;
+        }
+
+        return $found;
     }
 
     /**
@@ -357,14 +442,14 @@ class Bosch {
      */
     public function final_submit(){
 
-        if ( !isset($_POST[$this->settings('submit-name')]) )
-            return false;
+        $found = false;
 
-        if ( $_POST[$this->settings('submit-name')] !== $this->settings('submit-value') )
-            return false;
+        foreach ($this->buttons as $button) {
+            if ( $button->type === 'submit' && isset($_POST[$button->name]) && $_POST[$button->name] === $button->value )        
+                $found = true;
+        }
 
-        return true;
-
+        return $found;
     }
 
     /**
@@ -402,6 +487,19 @@ class Bosch {
 
         return true;
     }    
+
+    /**
+     * Check if the form is displaying the final step
+     * @return boolean
+     */
+    public function is_final_step(){
+
+        if ( ($_SESSION['step'] + 1) === count( $this->steps ) || count( $this->steps ) === 1 ){
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Output functions
@@ -469,6 +567,10 @@ class Bosch {
             return true;
         }
     }
+
+    public function get_button($button){
+        echo $this->buttons[$button]->get_html();
+    }
     
     /**
      * Get HTML for the buttons
@@ -476,75 +578,65 @@ class Bosch {
      */
     public function get_buttons(){
 
+        //single step form - output submit button(s)
         if ( count( $this->steps ) === 1 ){
             
-            if ( $this->settings('form-type') == 'horizontal' ){
-                $btns = '<div class="'.$this->settings('label-width').'"></div><div class="'.$this->settings('input-width').'">'.$this->submit_button().'</div>';
-            }
-            else{
-                $btns = '<div class="col-md-12">'.$this->submit_button().'</div>';
+            foreach ($this->buttons as $button) {
+                if ( $button->type === 'submit' ){
+
+                    $this->settings('form-type') == 'horizontal' ? $pre = '<div class="'.$this->settings('label-width').'"></div><div class="'.$this->settings('input-width').' bosch-submit-row">' : $pre = '<div class="col-md-12 bosch-submit-row bosch-single-submit">';
+
+                    $btns = $pre . $button->get_html() . '</div>';
+                }
             }
         }
         else{
             $btns = '';
             $btns .= '
             <div class="col-md-6">';
-                if ( $this->steps[$_SESSION['step']]->prev === true ){
-                    $btns .= $this->previous_button();
+                if ( $this->steps[$_SESSION['step']]->prev === true && $_SESSION['step'] != 0 ){
+                    $btns .= $this->buttons['prev']->get_html();
                 }
-                $btns .= '
-            </div>
-            <div class="col-md-6">';
-                if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
-                    if ( $this->settings('honeypot') ){
-                        $btns .= $this->honeypot();
-                    }
-
-                    $btns .= $this->submit_button();
-                }
-                else{
-                    if ( $this->steps[$_SESSION['step']]->next === true ){
-                        $btns .= $this->next_button();
-                    }
-                }
-                
-                $btns .= '
+            $btns .= '
             </div>';
+
+            //with custom submit buttons, put all submit buttons on a new row
+            if ( count($this->buttons) > 3 ){
+                $pre = '<div class="col-md-12 bosch-submit-row bosch-multi-submit">';
+                $post = '</div></div>';
+            }
+
+            //otherwise, submit button is placed on right
+            else{
+                $pre = '<div class="col-md-6">';
+                $post = '</div>';
+            }
+
+            $btns .= $pre;
+
+            if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
+
+                if ( $this->settings('honeypot') === true ){
+                    $btns .= $this->honeypot();
+                }
+
+                foreach ($this->buttons as $button) {
+
+                    if ( $button->type === 'submit' ){
+                        $btns .= $button->get_html();
+                    }
+                }
+            }
+            else{
+                if ( $this->steps[$_SESSION['step']]->next === true && ($_SESSION['step'] + 1) !== count( $this->steps ) ){
+                    $btns .= $this->buttons['next']->get_html();
+                }
+            }
+                
+            $btns .= $post;
         }
 
         return $btns;
-    }
-
-    /**
-     * Output the next button
-     * @return string
-     */
-    public function next_button(){
-        //check if this is the last step
-        if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
-            return '';
-        }
-        return '<input type="submit" value="next" name="next" class="'.$this->settings('nav-class').'">';
-    }
-
-    /**
-     * Output the previous button
-     * @return string
-     */
-    public function previous_button(){
-        //check if this is the first step
-        if ( $_SESSION['step'] == 0 ){
-            return '';
-        }
-        return '<input type="submit" value="prev" name="prev" class="'.$this->settings('nav-class').'">';
-    }
-
-    /**
-     * Output the (final) submit button
-     * @return string
-     */
-    public function submit_button(){
-        return '<input type="submit" value="'.$this->settings('submit-value').'" name="'.$this->settings('submit-name').'" class="'.$this->settings('submit-class').'">';
     }
 
     /**
