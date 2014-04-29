@@ -254,7 +254,7 @@ class Bosch {
         ));
 
         if ( isset($buttons) && !empty($buttons) ){
-            foreach ($steps as $k => $v) {
+            foreach ($buttons as $k => $v) {
                 $new_button = new Bosch_Button( $buttons[$k] );
                 $this->buttons[$new_button->var] = $new_button;
             }
@@ -296,31 +296,33 @@ class Bosch {
         $validator = new Bosch_Validator( $fields );
         $_POST = $validator->sanitize($_POST);
 
-        foreach ($_POST['form'] as $k => $v) {
+        if ( !empty($_POST['form']) ){
+            foreach ($_POST['form'] as $k => $v) {
 
-            //ignore the honeypot field
-            if ( $k !== 'hp' ){
-                if ( is_array($_POST['form'][$k]) ){
-                    $_POST['form'][$k] = implode('|', $_POST['form'][$k]);
+                //ignore the honeypot field
+                if ( $k !== 'hp' ){
+                    if ( is_array($_POST['form'][$k]) ){
+                        $_POST['form'][$k] = implode('|', $_POST['form'][$k]);
+                    }
+
+                    if ( !empty($fields[$k]->validate) )
+                        $validate[$k] = $fields[$k]->validate;
+                    
+                    if ( !empty($fields[$k]->filter) )
+                        $filter[$k] = $fields[$k]->filter;
+
+                    $fields[$k]->value = $v;
                 }
-
-                if ( !empty($fields[$k]->validate) )
-                    $validate[$k] = $fields[$k]->validate;
-                
-                if ( !empty($fields[$k]->filter) )
-                    $filter[$k] = $fields[$k]->filter;
-
-                $fields[$k]->value = $v;
             }
+
+            if ( !empty($validate) )
+                $validator->validation_rules($validate);
+
+            if ( !empty($filter) )
+                $validator->filter_rules($filter);
+
+            $validated_data = $validator->run($_POST['form']);
         }
-
-        if ( !empty($validate) )
-            $validator->validation_rules($validate);
-
-        if ( !empty($filter) )
-            $validator->filter_rules($filter);
-
-        $validated_data = $validator->run($_POST['form']);
        
         //required checkboxes must be checked manually, as they are not present in the $_POST array
         $missing_checkboxes = $this->validate_required_checkboxes($_POST['form']);
@@ -382,6 +384,18 @@ class Bosch {
         $success = $group->remove_field($field);
 
         if ( $success ){
+
+            foreach ($this->steps as $step) {
+                foreach ($this->groups as $group) {
+                    if ( $group->var == $group_var ){
+                        $step->remove_field_from_step_group($field, $group_var);
+                    }
+                }
+            }
+
+            $this->fields[$field]->validate = str_replace('required', '', $this->fields[$field]->validate);
+            $this->fields[$field]->validate = str_replace('||', '|', $this->fields[$field]->validate);
+
             return true;
         }
 
@@ -464,10 +478,15 @@ class Bosch {
         $missing = array();
         $fields = $this->steps[$_SESSION['step']]->get_fields();
 
+        if ( !isset($post_data) || is_null($post_data) ){
+            $post_data = array();
+        }
+
         foreach ($fields as $field) {
-            if ( $field->type == 'checkbox' || $field->type == 'checkbox-inline' ){
+            if ( $field->type == 'checkbox' || $field->type == 'checkbox-inline' || $field->type == 'radio' || $field->type =='radio-inline' ){
                 if ( !array_key_exists($field->var, $post_data) && strstr($field->validate, 'required') ){
-                    $missing[$field->var] = 'The '.$field->name.' field is required';
+                    $var = ucfirst(str_replace('_', ' ', $field->var));
+                    $missing[$field->var] = 'The '.$var.' field is required';
                 }
             }
         }
@@ -578,20 +597,38 @@ class Bosch {
      */
     public function get_buttons(){
 
+        $btns = '';
+
         //single step form - output submit button(s)
         if ( count( $this->steps ) === 1 ){
             
+            if ( count($this->buttons) <= 3 ){
+                if ( $this->settings('form-type') == 'horizontal' ){
+                    $pre = '<div class="'.$this->settings('label-width').'"></div><div class="'.$this->settings('input-width').' bosch-submit-row bosch-single-submit">';
+                }
+                else{
+                    $pre = '<div class="col-md-12 bosch-submit-row bosch-single-submit">';
+                }
+
+                $post = '</div>';
+            }
+            else{
+                $pre = '<div class="col-md-12 bosch-submit-row">';
+                $post = '</div>';
+            }
+
+            $btns .= $pre;
+
             foreach ($this->buttons as $button) {
                 if ( $button->type === 'submit' ){
-
-                    $this->settings('form-type') == 'horizontal' ? $pre = '<div class="'.$this->settings('label-width').'"></div><div class="'.$this->settings('input-width').' bosch-submit-row">' : $pre = '<div class="col-md-12 bosch-submit-row bosch-single-submit">';
-
-                    $btns = $pre . $button->get_html() . '</div>';
+                    $btns .= $button->get_html();
                 }
             }
+
+            $btns .= $post;
         }
         else{
-            $btns = '';
+            
             $btns .= '
             <div class="col-md-6">';
                 if ( $this->steps[$_SESSION['step']]->prev === true && $_SESSION['step'] != 0 ){
@@ -602,7 +639,7 @@ class Bosch {
 
             //with custom submit buttons, put all submit buttons on a new row
             if ( count($this->buttons) > 3 ){
-                $pre = '<div class="col-md-12 bosch-submit-row bosch-multi-submit">';
+                $pre = '<div class="col-md-12 bosch-submit-row">';
                 $post = '</div></div>';
             }
 

@@ -1,6 +1,6 @@
 <?php
 
-	if (session_status() == PHP_SESSION_NONE) {
+	if(session_id() == '') {
 		session_start();
 	}
 

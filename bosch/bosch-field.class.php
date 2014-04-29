@@ -111,12 +111,18 @@ class Bosch_Field extends Bosch{
     public $html_after = '';
 
     /**
+     * Null field for select options
+     * @var string
+     */
+    public $select_null = '-- Choose --';
+
+    /**
      * After processing, store error message for field here (if applicable)
      * @var string
      */
     protected $error;
 
-    private $valid_field_keys = array('var','name','type','options','desc','default','validate','filter','placeholder','hide_label','size','input_width','label_width','extras', 'html_before', 'html_after');
+    private $valid_field_keys = array('var','name','type','options','desc','default','validate','filter','placeholder','hide_label','size','input_width','label_width','extras', 'html_before', 'html_after', 'select_null');
 
     /**
      * Constructor
@@ -274,9 +280,9 @@ class Bosch_Field extends Bosch{
                     if ( $placeholder )
                         echo '<option value="">'.$placeholder.'</option>';
                     else
-                        echo '<option value="">-- Choose --</option>';
+                        echo '<option value="">'.$this->select_null.'</option>';
                     foreach( $this->options as $id => $name ){
-                        $field_value == $id ? $selected = 'selected' : $selected = '';
+                        ($field_value == $id && !is_null($field_value)) ? $selected = 'selected' : $selected = '';
                         echo '<option '.$selected.' value="'.$id.'">'.$name.'</option>';
                     }
 
@@ -287,7 +293,7 @@ class Bosch_Field extends Bosch{
             case 'radio-inline' :
                 echo '<div class="radio">';
                 foreach( $this->options as $id => $name ){
-                    $field_value == $id ? $checked = 'checked' : $checked = '';
+                    ($field_value == $id && !is_null($field_value)) ? $checked = 'checked' : $checked = '';
                     echo '
                     <div class="radio-inline">
                         <label>
@@ -302,7 +308,7 @@ class Bosch_Field extends Bosch{
 
             case 'radio' :
                 foreach( $this->options as $id => $name ){
-                    $field_value == $id ? $checked = 'checked' : $checked = '';
+                    ($field_value == $id && !is_null($field_value)) ? $checked = 'checked' : $checked = '';
                     echo '
                     <div class="radio">
                         <label>

@@ -157,8 +157,8 @@ class Bosch_Group extends Bosch{
         if ( !array_key_exists($field, $this->fields) ){            
             return false;
         }
-
         unset( $this->fields[$field] );
+
         return true;
     }
 }

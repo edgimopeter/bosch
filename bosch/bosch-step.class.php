@@ -98,4 +98,9 @@ class Bosch_Step extends Bosch{
        
     }
 
+    function remove_field_from_step_group($field, $group_var){
+        if ( isset($this->groups[$group_var]->fields[$field]) && !is_null($this->groups[$group_var]->fields[$field]) )
+            unset($this->groups[$group_var]->fields[$field]);
+    }
+
 }
