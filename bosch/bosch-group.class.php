@@ -132,11 +132,11 @@ class Bosch_Group{
                             throw new Exception('Invalid Field <code>'.$field.'</code> in Group <code>'.$this->name.'</code>');
                          }
 
-                          $field->output_field();
+                         $field->output_field();
 
                     }
                     catch (Exception $e) {
-                        $this->bosch_exception( $e );                   
+                        Bosch::bosch_exception( $e );                   
                     }
                 }
 

@@ -21,7 +21,7 @@
         include ( 'example-fields.php' );
 
         $this_form->setup( $fields );
-        $this_form->reset();
+
 
         ?>
 

@@ -187,32 +187,31 @@ class Bosch {
                 $field_vars[] = $field->var;
             }
 
-            $groups[] = 
+            $groups = array( 
             array( 
-                    'name' => 'generic_group',
+                    'name' => 'Generic Group',
+                    'var' => 'generic_group',
                     'hide_name' => true,
                     'fields' => implode('|', $field_vars)
-                );
-        }
+                )
+            );
+        } 
 
-        foreach ($groups as $k => $v) {
-
-            $new_group = new Bosch_Group( $groups[$k] );
+        foreach ($groups as $group) {
 
             //check for duplicate group name
-            if ( array_key_exists( $this->slugify($new_group->name), $this->groups) ){
-                $this->bosch_error('Duplicate Group Name detected: <code>'.$groups[$k]['name'].'</code>');
+            if ( array_key_exists( $group['var'], $this->groups) ){
+                $this->bosch_error('Duplicate Group Name detected: <code>'.$group['name'].'</code>');
             }
             else{
 
-                $new_group->init( $this->fields );
+                $group['fields'] = array_combine(explode('|', $group['fields']), explode('|', $group['fields']));
 
-                $this->groups[$this->slugify($new_group->name)] = $new_group;
+                $this->groups[$group['var']] = $group;
 
-                $valid_response = $new_group->validate_group();
-
-                if ( $valid_response !== 'valid' ){
-                    $this->bosch_error( $valid_response );
+                //group must have at least one field associated with it
+                if ( empty($this->fields) || $this->fields == false ){
+                    Bosch::bosch_error('No <code>fields</code> property set for group <code>'.$group['name'].'</code>');
                 }
             } 
         }
@@ -220,17 +219,17 @@ class Bosch {
         //if no steps have been set, create a generic step for all groups
         if ( !isset($steps) || empty($steps) ){
             foreach ($this->groups as $group) {
-                $group_names[] = $group->name;
+                $group_names[] = $group['var'];
             }
 
-            $steps[] = new Bosch_Step( array( 'groups' => implode('|', $group_names) ) );
-                
+            $steps = array(
+            array( 'groups' => implode('|', $group_names) )
+            );
         }
        
-        foreach ($steps as $k => $v) {
-            $new_step = new Bosch_Step( $steps[$k] );
-            $new_step->init( $this->groups );
-            $this->steps[] = $new_step;
+        foreach ($steps as $step) {
+            $step['groups'] = array_combine(explode('|', $step['groups']), explode('|', $step['groups']));
+            $this->steps[] = $step;
         }
 
         //Setup default buttons
@@ -381,7 +380,7 @@ class Bosch {
      */
     public function remove_from_group( $field, $group ){
 
-        $group_var = $this->slugify($group);
+        $group_var = Bosch::slugify($group);
         
         if ( !array_key_exists($group_var, $this->groups) ){
             $this->bosch_error('Group <code>'.$group_var.'</code> does not exist. Cannot remove from this group.');
@@ -554,13 +553,72 @@ class Bosch {
         <form id="'.$this->settings('form-name').'" role="form" class="bosch-form step-'.$_SESSION[$this->settings('form-name').'-step'].' '.$class.'" method="post" '.$enc.'>
             <div class="row">';
     
-            $this->steps[$_SESSION[$this->settings('form-name').'-step']]->output_step();
+            $this->output_step($_SESSION[$this->settings('form-name').'-step']);
             echo $this->get_buttons();
 
         echo '</div>
         </form>';
 
         return true;
+    }
+
+    public function output_step( $step_num ){
+        $step = $this->steps[$step_num];
+        foreach ($step['groups'] as $group_var) {
+            $this->output_group($group_var);
+        }
+    }
+
+    public function output_group( $group_var ){
+
+        $group = $this->groups[$group_var];
+
+        $html_before = isset($group['html_before']) ? $group['html_before'] : '';
+        $html_after  = isset($group['html_after']) ? $group['html_after'] : '';
+        $width       = isset($group['width']) ? $group['html_before'] : 'col-md-12';
+        $desc        = isset($group['desc']) ? $group['desc'] : '';
+        $hide_name   = isset($group['hide_name']) ? $group['hide_name'] : false;
+
+        echo 
+        $html_before . '
+        <div class="'.$width.'">
+            <div class="bosch-group group-'.$group['var'].'">';
+
+                if ( !$hide_name ){
+                    echo '
+                    <div class="bosch-heading">
+                        '.Bosch::settings('group-headings') . $group['name'] . Bosch::close_tag(Bosch::settings('group-headings')) .'
+                    </div>';
+                }
+
+                if ( $desc !== '' ){
+                    echo '            
+                    <div class="bosch-group-desc">
+                        '.$desc.'
+                    </div>';
+                }
+
+                //cycle through the fields in this group
+                //output the field if possible, throw exception if not
+                foreach ( $group['fields'] as $field_var ){
+
+                    try{
+                         if ( !array_key_exists($field_var, $group['fields']) ){
+                            throw new Exception('Invalid Field <code>'.$field.'</code> in Group <code>'.$group['name'].'</code>');
+                         }
+
+                         $this->fields[$field_var]->output_field();
+
+                    }
+                    catch (Exception $e) {
+                        Bosch::bosch_exception( $e );                   
+                    }
+                }
+
+            echo '
+            </div>
+        </div>'.
+        $html_after;
     }
 
     public function get_field( $field ){
