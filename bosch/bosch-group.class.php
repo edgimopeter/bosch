@@ -11,7 +11,7 @@
 /**
  * Bosch Groups hold one or more Fields
  */
-class Bosch_Group extends Bosch{
+class Bosch_Group{
     
     /**
      * Name of the group to be publicly displayed
@@ -71,10 +71,10 @@ class Bosch_Group extends Bosch{
             $this->$k = $v;
         }
 
-        $this->var = parent::slugify( $this->name );
+        $this->var = Bosch::slugify( $this->name );
     }
 
-    protected function init( $new_fields ){
+    public function init( $new_fields ){
         $temp = explode('|', $this->fields);
         $this->fields = array();
         foreach ($temp as $field_var) {
@@ -112,7 +112,7 @@ class Bosch_Group extends Bosch{
                 if ( $this->hide_name === false ){
                     echo '
                     <div class="bosch-heading">
-                        '.parent::settings('group-headings') . $this->name . $this->close_tag(parent::settings('group-headings')) .'
+                        '.Bosch::settings('group-headings') . $this->name . $this->close_tag(Bosch::settings('group-headings')) .'
                     </div>';
                 }
 

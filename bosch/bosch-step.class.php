@@ -11,7 +11,7 @@
 /**
  * Bosch Steps hold one or more groups
  */
-class Bosch_Step extends Bosch{
+class Bosch_Step{
     
     public $name      = '';
     public $desc      = '';
@@ -32,12 +32,12 @@ class Bosch_Step extends Bosch{
         }        
     }
 
-    protected function init( $new_groups ){
+    public function init( $new_groups ){
 
         $temp = explode('|', $this->groups);
         $this->groups = array();
         foreach ($temp as $group_var) {
-            $group_var = parent::slugify($group_var);
+            $group_var = Bosch::slugify($group_var);
             $this->groups[$group_var] = $new_groups[$group_var];
         }
     }

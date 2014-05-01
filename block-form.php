@@ -8,39 +8,20 @@
         <title>Simple Form Test</title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="bosch/css/bosch.css">
-        <script src="bosch/js/jquery.min.js"></script>
-        <script src="bosch/js/modernizr.js"></script>
-        <script src="bosch/js/functions.js"></script>
+        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+        <script src="bosch/js/bosch.js"></script>
     </head>
     <body>
     	
         <?php 
         
-        $this_form = new Bosch;
-        $this_form->settings('form-type', 'block');
-        //$this_form->settings('input-width', 'col-sm-5');
-        //$this_form->settings('label-width', 'col-sm-1');
+        $this_form = new Bosch('block-form');
+        $this_form->settings('form-type', 'horizontal');
 
         include ( 'example-fields.php' );
 
-        $groups = array(array('name' => 'Group 1', 'fields' => 'file'));
-
-        /*$groups = array(
-            array(
-                'name' => 'Group 1',
-                'fields' => 'name|email|password|date|time|week',
-                'desc' => 'This is the first group',
-                'width' => 'col-md-3'
-            ),
-            array(
-                'name' => 'Group 2',
-                'fields' => 'amount|website|search|tel|color|file',
-                'width' => 'col-md-9'
-            )
-        );*/
-
-        $this_form->setup( $fields, $groups );
+        $this_form->setup( $fields );
+        $this_form->reset();
 
         ?>
 
@@ -71,7 +52,9 @@
                     }
                 }
 
+                
                 $this_form->output();
+
                 
                 ?>
 

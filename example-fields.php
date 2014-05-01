@@ -41,6 +41,30 @@ array(
       'validate'    => 'required',
       'filter'      => 'trim|sanitize_string'
       ),
+      array(
+      'var'         => 'month', 
+      'name'        => 'month', 
+      'type'        => 'month',
+      'desc'        => 'Please pick a month',
+      'validate'    => 'required',
+      'filter'      => 'trim|sanitize_string'
+      ),
+      array(
+      'var'         => 'year', 
+      'name'        => 'year', 
+      'type'        => 'year',
+      'desc'        => 'Please pick a year',
+      'validate'    => 'required',
+      'filter'      => 'trim|sanitize_string'
+      ),
+      array(
+      'var'         => 'money', 
+      'name'        => 'money', 
+      'type'        => 'money',
+      'desc'        => 'Please pick a money',
+      'validate'    => 'required',
+      'filter'      => 'trim|sanitize_string'
+      ),
       //Text variant - time
       array(
       'var'         => 'time', 
@@ -50,12 +74,19 @@ array(
       'validate'    => 'required',
       'filter'      => 'trim|sanitize_string'
       ),
-      //Text variant - week
       array(
-      'var'         => 'week', 
-      'name'        => 'Week', 
-      'type'        => 'week',
-      'desc'        => 'Please pick a week',
+      'var'         => 'hour', 
+      'name'        => 'hour', 
+      'type'        => 'hour',
+      'desc'        => 'Please pick a hour',
+      'validate'    => 'required',
+      'filter'      => 'trim|sanitize_string'
+      ),
+      array(
+      'var'         => 'minute', 
+      'name'        => 'minute', 
+      'type'        => 'minute',
+      'desc'        => 'Please pick a minute',
       'validate'    => 'required',
       'filter'      => 'trim|sanitize_string'
       ),

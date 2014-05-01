@@ -60,6 +60,10 @@ class Bosch {
      * @var array
      */
     private static $bosch_settings = array(
+
+        //this will wrap group headings
+        'form-name' => 'bosch_form',
+
         //this will wrap group headings
         'group-headings' => '<h2>',
 
@@ -111,6 +115,10 @@ class Bosch {
      * Initialize the form, settings, and data
      * @package setup_functions
      */
+    
+    function __construct( $form_name = 'bosch_form' ){
+        $this->settings('form-name', $form_name);
+    }
 
     /**
      * Set/get for settings
@@ -119,7 +127,7 @@ class Bosch {
      * @param string $value Optional name of value to set
      * @return mixed
      */
-    public function settings( $key, $value = false ){
+    public static function settings( $key, $value = false ){
 
         try{
              if ( !array_key_exists($key, self::$bosch_settings) ){
@@ -282,8 +290,8 @@ class Bosch {
         if ( !$this->has_been_submitted() )
             return;
 
-        if ( isset($_POST[$this->settings('prev-name')]) && $_POST[$this->settings('prev-name')] == $this->settings('prev-value') && $_SESSION['step'] > 0 ){
-            $_SESSION['step']--;
+        if ( isset($_POST[$this->settings('prev-name')]) && $_POST[$this->settings('prev-name')] == $this->settings('prev-value') && $_SESSION[$this->settings('form-name').'-step'] > 0 ){
+            $_SESSION[$this->settings('form-name').'-step']--;
             return true;
         }            
 
@@ -291,7 +299,7 @@ class Bosch {
         $filter = array();
         $errors = array();
 
-        $fields = $this->steps[$_SESSION['step']]->get_fields();
+        $fields = $this->steps[$_SESSION[$this->settings('form-name').'-step']]->get_fields();
 
         $validator = new Bosch_Validator( $fields );
         $_POST = $validator->sanitize($_POST);
@@ -344,22 +352,22 @@ class Bosch {
         //no errors, save the validated data and return true
         else{
 
-            //put the recently submitted data in the $_SESSION['storage'] array in the current step number
-            //eg: $_SESSION['storage'][0][var_name] = value;
+            //put the recently submitted data in the $_SESSION[$this->settings('form-name').'-storage'] array in the current step number
+            //eg: $_SESSION[$this->settings('form-name').'-storage'][0][var_name] = value;
             foreach ($validated_data as $k => $v) {
-                $_SESSION['storage'][$_SESSION['step']][$k] = $v;
+                $_SESSION[$this->settings('form-name').'-storage'][$_SESSION[$this->settings('form-name').'-step']][$k] = $v;
             }
 
             //update the form's stored data to all the submitted data so far
             //$this->data[0][var_name] = value;
-            foreach ($_SESSION['storage'] as $step_num => $step_array) {
+            foreach ($_SESSION[$this->settings('form-name').'-storage'] as $step_num => $step_array) {
                 foreach ($step_array as $k => $v) {
                     $this->data[$step_num][$k] = $step_array[$k];
                 }       
             }
 
-            if ( isset($_POST[$this->settings('next-name')]) && $_POST[$this->settings('next-name')] == $this->settings('next-value') && ($_SESSION['step'] + 1) < count( $this->steps )  )
-                $_SESSION['step']++;
+            if ( isset($_POST[$this->settings('next-name')]) && $_POST[$this->settings('next-name')] == $this->settings('next-value') && ($_SESSION[$this->settings('form-name').'-step'] + 1) < count( $this->steps )  )
+                $_SESSION[$this->settings('form-name').'-step']++;
 
             return true;
         }
@@ -425,8 +433,8 @@ class Bosch {
      * @return bool
      */
     public function reset(){
-        $_SESSION['step'] = 0;
-        unset($_SESSION['storage']);
+        $_SESSION[$this->settings('form-name').'-step'] = 0;
+        unset($_SESSION[$this->settings('form-name').'-storage']);
         $this->data = array();
         foreach ($this->fields as $field) {
             unset($field->value);
@@ -476,7 +484,7 @@ class Bosch {
     private function validate_required_checkboxes( $post_data ){
 
         $missing = array();
-        $fields = $this->steps[$_SESSION['step']]->get_fields();
+        $fields = $this->steps[$_SESSION[$this->settings('form-name').'-step']]->get_fields();
 
         if ( !isset($post_data) || is_null($post_data) ){
             $post_data = array();
@@ -513,7 +521,7 @@ class Bosch {
      */
     public function is_final_step(){
 
-        if ( ($_SESSION['step'] + 1) === count( $this->steps ) || count( $this->steps ) === 1 ){
+        if ( ($_SESSION[$this->settings('form-name').'-step'] + 1) === count( $this->steps ) || count( $this->steps ) === 1 ){
             return true;
         }
 
@@ -543,13 +551,14 @@ class Bosch {
         $this->has_file_inputs() ? $enc = 'enctype="multipart/form-data"' : $enc = '';
 
         echo '
-        <form role="form" class="bosch-form step-'.$_SESSION['step'].' '.$class.'" method="post" '.$enc.'>
+        <form id="'.$this->settings('form-name').'" role="form" class="bosch-form step-'.$_SESSION[$this->settings('form-name').'-step'].' '.$class.'" method="post" '.$enc.'>
             <div class="row">';
     
-            $this->steps[$_SESSION['step']]->output_step();
+            $this->steps[$_SESSION[$this->settings('form-name').'-step']]->output_step();
             echo $this->get_buttons();
 
-        echo '</div></form>';
+        echo '</div>
+        </form>';
 
         return true;
     }
@@ -631,7 +640,7 @@ class Bosch {
             
             $btns .= '
             <div class="col-md-6">';
-                if ( $this->steps[$_SESSION['step']]->prev === true && $_SESSION['step'] != 0 ){
+                if ( $this->steps[$_SESSION[$this->settings('form-name').'-step']]->prev === true && $_SESSION[$this->settings('form-name').'-step'] != 0 ){
                     $btns .= $this->buttons['prev']->get_html();
                 }
             $btns .= '
@@ -651,7 +660,7 @@ class Bosch {
 
             $btns .= $pre;
 
-            if ( ($_SESSION['step'] + 1) === count( $this->steps ) ){
+            if ( ($_SESSION[$this->settings('form-name').'-step'] + 1) === count( $this->steps ) ){
 
                 if ( $this->settings('honeypot') === true ){
                     $btns .= $this->honeypot();
@@ -665,7 +674,7 @@ class Bosch {
                 }
             }
             else{
-                if ( $this->steps[$_SESSION['step']]->next === true && ($_SESSION['step'] + 1) !== count( $this->steps ) ){
+                if ( $this->steps[$_SESSION[$this->settings('form-name').'-step']]->next === true && ($_SESSION[$this->settings('form-name').'-step'] + 1) !== count( $this->steps ) ){
                     $btns .= $this->buttons['next']->get_html();
                 }
             }
@@ -689,7 +698,7 @@ class Bosch {
      * @param object $e The exception
      * @return bool
      */
-    protected function bosch_exception ( $e ){
+    public static function bosch_exception ( $e ){
         echo '
         <div class="alert alert-danger bosch-exception">
             Exception: <strong>'.$e->getMessage().'</strong><br />
@@ -705,7 +714,7 @@ class Bosch {
      * @param string $text The error text
      * @return bool
      */
-    protected function bosch_error ( $text ){
+    public static function bosch_error ( $text ){
         echo '
         <div class="alert alert-danger bosch-error">
            '.$text.'
@@ -743,7 +752,7 @@ class Bosch {
      * @param string $text The string to be converted
      * @return string
      */
-    protected function slugify($text){ 
+    public static function slugify($text){ 
         $text = preg_replace('~[^\\pL\d]+~u', '-', $text);
         $text = trim($text, '-');
         $text = iconv('utf-8', 'us-ascii//TRANSLIT', $text);
@@ -777,7 +786,7 @@ class Bosch {
      * Array of states for select fields
      * @return array
      */
-    protected function states(){
+    public static function states(){
         return array("AL" => "Alabama", "AK" => "Alaska", "AZ" => "Arizona", "AR" => "Arkansas", "CA" => "California", "CO" => "Colorado", "CT" => "Connecticut", "DE" => "Delaware", "FL" => "Florida", "GA" => "Georgia", "HI" => "Hawaii", "ID" => "Idaho", "IL" => "Illinois", "IN" => "Indiana", "IA" => "Iowa", "KS" => "Kansas", "KY" => "Kentucky", "LA" => "Louisiana", "ME" => "Maine", "MD" => "Maryland", "MA" => "Massachusetts", "MI" => "Michigan", "MN" => "Minnesota", "MS" => "Mississippi", "MO" => "Missouri", "MT" => "Montana", "NE" => "Nebraska", "NV" => "Nevada", "NH" => "New Hampshire", "NJ" => "New Jersey", "NM" => "New Mexico", "NY" => "New York", "NC" => "North Carolina", "ND" => "North Dakota", "OH" => "Ohio", "OK" => "Oklahoma", "OR" => "Oregon", "PA" => "Pennsylvania", "RI" => "Rhode Island", "SC" => "South Carolina", "SD" => "South Dakota", "TN" => "Tennessee", "TX" => "Texas", "UT" => "Utah", "VT" => "Vermont", "VA" => "Virginia", "WA" => "Washington", "WV" => "West Virginia", "WI" => "Wisconsin", "WY" => "Wyoming");
     }
 
@@ -785,7 +794,7 @@ class Bosch {
      * Array of months for select fields
      * @return array
      */
-    protected function months(){
+    public static function months(){
         return array('jan' => 'January', 'feb' => 'February', 'mar' => 'March', 'apr' => 'April', 'may' => 'May', 'june' => 'June', 'july' => 'July', 'aug' => 'August', 'sep' => 'September', 'oct' => 'October', 'nov' => 'November', 'dec' => 'December');
     }
 
@@ -793,8 +802,45 @@ class Bosch {
      * Array of days for select fields
      * @return array 
      */
-    protected function days(){
-        return array(1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => '8', 9 => '9', 10 => '10', 11 => '11', 12 => '12', 13 => '13', 14 => '14', 15 => '15', 16 => '16', 17 => '17', 18 => '18', 19 => '19', 20 => '20', 21 => '21', 22 => '22', 23 => '23', 24 => '24', 25 => '25', 26 => '26', 27 => '27', 28 => '28', 29 => '29', 30 => '30', 31 => '31');
+    public static function days(){
+
+        $values = array();
+
+        for ( $i = 1; $i < 32; $i++ ){
+            $values[$i] = $i;
+        }
+
+        return $values;
+    }
+
+    /**
+     * Array of hours for select fields
+     * @return array 
+     */
+    public static function hours(){
+
+        $values = array();
+
+        for ( $i = 0; $i < 24; $i++ ){
+            $values[sprintf("%02d", $i)] = sprintf("%02d", $i);
+        }
+
+        return $values;
+    }
+
+    /**
+     * Array of minutes for select fields
+     * @return array 
+     */
+    public static function minutes(){
+        
+        $values = array();
+
+        for ( $i = 0; $i < 60; $i++ ){
+            $values[sprintf("%02d", $i)] = sprintf("%02d", $i);
+        }
+
+        return $values;
     }
 
 }

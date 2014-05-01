@@ -11,7 +11,7 @@
 /**
  * Bosch Fields hold properties for a single input field
  */
-class Bosch_Field extends Bosch{
+class Bosch_Field{
 
     /**
      * The variable name, no spaces
@@ -111,10 +111,10 @@ class Bosch_Field extends Bosch{
     public $html_after = '';
 
     /**
-     * Null field for select options
+     * Show or hide the generic '-- Choose --' value for select fields. Can be overwitten by the placeholder value
      * @var string
      */
-    public $select_null = '-- Choose --';
+    public $select_null = true;
 
     /**
      * After processing, store error message for field here (if applicable)
@@ -133,7 +133,7 @@ class Bosch_Field extends Bosch{
         foreach ($properties as $k => $v) {
             $this->$k = $v;
             if ( !in_array($k, $this->valid_field_keys) ){
-                $this->bosch_error('Invalid field variable detected: <code>'.$k.'</code>');
+                Bosch::bosch_error('Invalid field variable detected: <code>'.$k.'</code>');
             }
         }        
     }
@@ -190,7 +190,7 @@ class Bosch_Field extends Bosch{
         isset($this->hide_label) && $this->hide_label === true ? $label_class = 'sr-only' : $label_class = '';
 
         //hide the label if the global setting is true
-        parent::settings('hide-labels') === true ? $label_class = 'sr-only' : $label_class = '';
+        Bosch::settings('hide-labels') === true ? $label_class = 'sr-only' : $label_class = '';
 
         //if the field size is set, add it to the input class string
         isset($this->size) ? $input_class .= ' input-'.$this->size : $input_class .= '';
@@ -205,11 +205,11 @@ class Bosch_Field extends Bosch{
 
         //set column pre and post HTML if form is set to horizontal
         $input_col_pre = ''; $input_col_post = '';
-        if ( parent::settings('form-type') == 'horizontal' ){
-            isset($this->input_width) ? $col = $this->input_width : $col = parent::settings('input-width');
+        if ( Bosch::settings('form-type') == 'horizontal' ){
+            isset($this->input_width) ? $col = $this->input_width : $col = Bosch::settings('input-width');
             $input_col_pre = '<div class="'.$col.'">';
             $input_col_post = '</div>';
-            isset($this->label_width) ? $col = $this->label_width : $col = parent::settings('label-width');
+            isset($this->label_width) ? $col = $this->label_width : $col = Bosch::settings('label-width');
             $label_class .= ' '.$col;
         }
 
@@ -218,7 +218,7 @@ class Bosch_Field extends Bosch{
 
         //output error and cancel field output if invalid
         if ( $valid_response !== 'valid' ){
-            $this->bosch_error( $valid_response );
+            Bosch::bosch_error( $valid_response );
             return;
         }
 
@@ -239,9 +239,6 @@ class Bosch_Field extends Bosch{
 
             case 'text' :
             case 'password' :
-            case 'date' :
-            case 'time' :
-            case 'week' :
             case 'number' :
             case 'email' :
             case 'url' :
@@ -249,10 +246,29 @@ class Bosch_Field extends Bosch{
             case 'tel' :
             case 'color' :
             case 'hidden' :
-
                 echo '
                 <input id="'.$this->var.'" '.$extras.' type="'.$this->type.'" class="'.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$this->var.']" />';
             break;
+
+            case 'time' :
+                echo '
+                <input id="'.$this->var.'" '.$extras.' type="text" class="timepicker '.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$this->var.']" />';
+                break;
+
+            case 'date' :
+                echo '
+                <input id="'.$this->var.'" '.$extras.' type="text" class="datepicker '.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$this->var.']" />';
+                break;
+
+            case 'month' : 
+                echo '
+                <input id="'.$this->var.'" '.$extras.' data-date-format="mm." data-date-viewmode="months" data-date-minviewmode="months" type="text" class="datepicker '.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$this->var.']" />';
+                break;
+
+            case 'year' : 
+                echo '
+                <input id="'.$this->var.'" '.$extras.' data-date-format="yyyy." data-date-viewmode="years" data-date-minviewmode="years" type="text" class="datepicker '.$input_class.'" placeholder="'.$placeholder.'" value="'.$field_value.'" name="form['.$this->var.']" />';
+                break;
 
             case 'money' : echo '
                 <div class="input-group">
@@ -269,18 +285,26 @@ class Bosch_Field extends Bosch{
             case 'state' : 
             case 'month' : 
             case 'day' : 
+            case 'hour' :
+            case 'minute' :
             case 'select' : 
 
-                if ( $this->type == 'state' ) $this->options = $this->states();
-                if ( $this->type == 'month' ) $this->options = $this->months();
-                if ( $this->type == 'day' ) $this->options = $this->days();
+                if ( $this->type == 'state' ) $this->options = Bosch::states();
+                if ( $this->type == 'month' ) $this->options = Bosch::months();
+                if ( $this->type == 'day' ) $this->options = Bosch::days();
+                if ( $this->type == 'hour' ) $this->options = Bosch::hours();
+                if ( $this->type == 'minute' ) $this->options = Bosch::minutes();
 
             echo '
                 <select id="'.$this->var.'" '.$extras.' class="'.$input_class.'" name="form['.$this->var.']">';
-                    if ( $placeholder )
+                    if ( $placeholder ){
                         echo '<option value="">'.$placeholder.'</option>';
-                    else
-                        echo '<option value="">'.$this->select_null.'</option>';
+                    }                        
+                    else{
+                        if ( $this->select_null )
+                            echo '<option value="">-- Choose --</option>';
+                    }
+                        
                     foreach( $this->options as $id => $name ){
                         ($field_value == $id && !is_null($field_value)) ? $selected = 'selected' : $selected = '';
                         echo '<option '.$selected.' value="'.$id.'">'.$name.'</option>';
@@ -297,7 +321,7 @@ class Bosch_Field extends Bosch{
                     echo '
                     <div class="radio-inline">
                         <label>
-                            <input id="'.$this->var.'-'.parent::slugify($name).'" '.$extras.' type="radio" name="form['.$this->var.']" value="'.$id.'" '.$checked.'>
+                            <input id="'.$this->var.'-'.Bosch::slugify($name).'" '.$extras.' type="radio" name="form['.$this->var.']" value="'.$id.'" '.$checked.'>
                             '.$name.'
                         </label>
                     </div>';
@@ -312,7 +336,7 @@ class Bosch_Field extends Bosch{
                     echo '
                     <div class="radio">
                         <label>
-                            <input id="'.$this->var.'-'.parent::slugify($name).'" '.$extras.' type="radio" name="form['.$this->var.']" value="'.$id.'" '.$checked.'>
+                            <input id="'.$this->var.'-'.Bosch::slugify($name).'" '.$extras.' type="radio" name="form['.$this->var.']" value="'.$id.'" '.$checked.'>
                             '.$name.'
                         </label>
                     </div>';
@@ -347,7 +371,7 @@ class Bosch_Field extends Bosch{
                     echo '
                     <div class="'.$checkbox_class.'">
                         <label>
-                            <input id="'.$this->var.'-'.parent::slugify($name).'" '.$extras.' type="checkbox" name="form['.$this->var.'][]" value="'.$id.'" '.$checked.'>
+                            <input id="'.$this->var.'-'.Bosch::slugify($name).'" '.$extras.' type="checkbox" name="form['.$this->var.'][]" value="'.$id.'" '.$checked.'>
                             '.$name.'
                         </label>
                     </div>';
@@ -366,7 +390,7 @@ class Bosch_Field extends Bosch{
                 break;
 
             default : 
-                $this->bosch_error('Invalid type property <code>'.$this->type.'</code> in field <code>'.$this->var.'</code>');
+                Bosch::bosch_error('Invalid type property <code>'.$this->type.'</code> in field <code>'.$this->var.'</code>');
                 break;
         }
 
