@@ -4,7 +4,7 @@
  * Bosch - PHP form framework
  *
  * @author      Peter Adams (http://peteradamsdev.com)
- * @copyright   Copyright (c) 2013 Peter Adams
+ * @copyright   Copyright (c) 2014 Peter Adams
  * @link        https://github.com/edgimopeter/bosch
  * @version     1.0
  */
@@ -55,13 +55,15 @@ class Bosch {
      */
     public $data = array();
 
+    public static $valid_field_keys = array('var','name','type','options','desc','default','validate','filter','placeholder','hide_label','size','input_width','label_width','extras', 'html_before', 'html_after', 'select_null');
+
     /**
      * Various form settings
      * @var array
      */
     private static $bosch_settings = array(
 
-        //this will wrap group headings
+        //set as the ID
         'form-name' => 'bosch_form',
 
         //this will wrap group headings
@@ -106,8 +108,11 @@ class Bosch {
         //use honeypot for captcha, true or false
         'honeypot' => true,
 
+        //HTML to display before errors are listed
+        'error-header' => '<strong>Please correct the following errors</strong><br />',
+
         //show debug info
-        'debug' => false
+        'debug' => true
     );
 
     /**
@@ -116,8 +121,21 @@ class Bosch {
      * @package setup_functions
      */
     
-    function __construct( $form_name = 'bosch_form' ){
-        $this->settings('form-name', $form_name);
+    function __construct( $form_name = false ){
+
+        if ( $form_name !== false ){
+            $this->settings('form-name', $form_name);
+        }
+        
+        if ( !isset($_SESSION[$this->settings('form-name').'-step']) ){
+            $_SESSION[$this->settings('form-name').'-step'] = 0;
+        }
+
+        if (isset($_SESSION[$this->settings('form-name').'-last_activity']) && (time() - $_SESSION[$this->settings('form-name').'-last_activity'] > 1800)) {
+            $this->reset();
+        }
+
+        $_SESSION[$this->settings('form-name').'-last_activity'] = time();
     }
 
     /**
@@ -166,17 +184,17 @@ class Bosch {
 
             //check if the var has already been used
             if ( array_key_exists($fields[$k]['var'], $this->fields) ){
-                $this->bosch_error('Duplicate field <code>var</code> name detected: <code>'.$fields[$k]['var'].'</code>');
+                Bosch::error('Duplicate field <code>var</code> name detected: <code>'.$fields[$k]['var'].'</code>');
             }
             else{
                 $this->fields[$fields[$k]['var']] = $new_field;
 
                 //check if the field has been configured correctly
-                $valid_response = $new_field->validate_field();
+                $valid_response = $new_field->validate_field_setup();
 
                 //output error message if configured incorrectly
                 if ( $valid_response !== 'valid' ){
-                    $this->bosch_error( $valid_response );
+                    Bosch::error( $valid_response );
                 }
             }
         }
@@ -199,9 +217,17 @@ class Bosch {
 
         foreach ($groups as $group) {
 
+            if ( !isset($group['var']) && !isset($group['name']) ){
+                Bosch::error('You must set either a <code>var</code> or <code>name</code> field for every group.');
+            }
+
+            if ( !isset($group['var']) || $group['var'] == ''){
+                $group['var'] = Bosch::slugify( $group['name'] );
+            }
+
             //check for duplicate group name
             if ( array_key_exists( $group['var'], $this->groups) ){
-                $this->bosch_error('Duplicate Group Name detected: <code>'.$group['name'].'</code>');
+                Bosch::error('Duplicate Group Name detected: <code>'.$group['name'].'</code>');
             }
             else{
 
@@ -229,6 +255,9 @@ class Bosch {
        
         foreach ($steps as $step) {
             $step['groups'] = array_combine(explode('|', $step['groups']), explode('|', $step['groups']));
+            if ( !isset($step['prev']) ) $step['prev'] = true;
+            if ( !isset($step['next']) ) $step['next'] = true;
+
             $this->steps[] = $step;
         }
 
@@ -270,6 +299,17 @@ class Bosch {
         return true; 
     }
 
+    public function remove_field_from_group( $field, $group ){
+
+        if ( $this->is_field_in_group( $field, array($group) ) ){
+            unset($this->groups[$group]['fields'][$field]);
+            return true;
+        }
+
+        Bosch::warning("Field <code>$field</code> not found in group <code>$group</code>");
+        return false;
+    }
+
     /**
      * Processing functions
      * Used by Bosch to process forms and perform state checking
@@ -285,131 +325,84 @@ class Bosch {
      * @todo implement local version of GUMP
      */
     public function process(){
+
         //don't run if the form hasn't been submitted
         if ( !$this->has_been_submitted() )
             return;
 
-        if ( isset($_POST[$this->settings('prev-name')]) && $_POST[$this->settings('prev-name')] == $this->settings('prev-value') && $_SESSION[$this->settings('form-name').'-step'] > 0 ){
+        $current_step = $_SESSION[$this->settings('form-name').'-step'];
+
+        //previous button was clicked
+        if ( isset($_POST[$this->settings('prev-name')]) && $_POST[$this->settings('prev-name')] == $this->settings('prev-value') && $current_step > 0 ){
             $_SESSION[$this->settings('form-name').'-step']--;
-            return true;
-        }            
+        }
 
-        $validate = array();
-        $filter = array();
-        $errors = array();
-
-        $fields = $this->steps[$_SESSION[$this->settings('form-name').'-step']]->get_fields();
-
-        $validator = new Bosch_Validator( $fields );
-        $_POST = $validator->sanitize($_POST);
+        $has_errors = false;        
 
         if ( !empty($_POST['form']) ){
-            foreach ($_POST['form'] as $k => $v) {
 
-                //ignore the honeypot field
-                if ( $k !== 'hp' ){
-                    if ( is_array($_POST['form'][$k]) ){
-                        $_POST['form'][$k] = implode('|', $_POST['form'][$k]);
-                    }
+            $_POST['form'] = Bosch::sanitize($_POST['form']);
 
-                    if ( !empty($fields[$k]->validate) )
-                        $validate[$k] = $fields[$k]->validate;
+            foreach ( $this->fields as $k => $v ) {
+                //only work with fields in the current step/group
+                if ( $this->is_field_in_group( $k, $this->steps[$current_step]['groups'] ) ){
+
+                    //for processing, value is copied from $_POST or NULL if not present
+                    isset( $_POST['form'][$k] ) ? $value = $_POST['form'][$k] : $value = NULL;
+                  
+                    $success = $this->fields[$k]->process( $value );
                     
-                    if ( !empty($fields[$k]->filter) )
-                        $filter[$k] = $fields[$k]->filter;
+                    if ( !$success ){
+                        $has_errors = true;
+                    }
+                }                
+            }
+        }
 
-                    $fields[$k]->value = $v;
+        if ( $has_errors ){
+            foreach ($this->fields as $field) {
+                if ( $this->is_field_in_group( $field->var, $this->steps[$current_step]['groups'] ) && !empty($field->errors)){
+                    $this->errors[] = $field->errors['message'];                        
                 }
             }
 
-            if ( !empty($validate) )
-                $validator->validation_rules($validate);
-
-            if ( !empty($filter) )
-                $validator->filter_rules($filter);
-
-            $validated_data = $validator->run($_POST['form']);
-        }
-       
-        //required checkboxes must be checked manually, as they are not present in the $_POST array
-        $missing_checkboxes = $this->validate_required_checkboxes($_POST['form']);
-        if ( !empty($missing_checkboxes) ){
-            $validated_data = false;
-            $errors = $missing_checkboxes;
-        }
-
-        //validation failed, merge errors with checkbox errors
-        if ( $validated_data === false ){
-            $errors = array_merge($errors, $validator->get_readable_errors(false));
-            $this->errors = $errors;
-            foreach ($errors as $k => $v) {
-                $this->fields[$k]->error = $v;
-            }
             return false;
         }
-        
-        //no errors, save the validated data and return true
         else{
 
             //put the recently submitted data in the $_SESSION[$this->settings('form-name').'-storage'] array in the current step number
             //eg: $_SESSION[$this->settings('form-name').'-storage'][0][var_name] = value;
-            foreach ($validated_data as $k => $v) {
-                $_SESSION[$this->settings('form-name').'-storage'][$_SESSION[$this->settings('form-name').'-step']][$k] = $v;
+            foreach ( $this->fields as $k => $v ) {
+                if ( $this->is_field_in_group( $k, $this->steps[$current_step]['groups'] ) ){
+                    $_SESSION[$this->settings('form-name').'-storage'][$current_step][$this->fields[$k]->var] = $this->fields[$k]->default;
+                }
             }
 
             //update the form's stored data to all the submitted data so far
-            //$this->data[0][var_name] = value;
+            //$this->data[step_num][var_name] = value;
             foreach ($_SESSION[$this->settings('form-name').'-storage'] as $step_num => $step_array) {
-                foreach ($step_array as $k => $v) {
+                foreach ($step_array as $k => $v) {                    
                     $this->data[$step_num][$k] = $step_array[$k];
                 }       
             }
 
-            if ( isset($_POST[$this->settings('next-name')]) && $_POST[$this->settings('next-name')] == $this->settings('next-value') && ($_SESSION[$this->settings('form-name').'-step'] + 1) < count( $this->steps )  )
+            //increase the step if Next was clicked
+            if ( isset($_POST[$this->settings('next-name')]) && $_POST[$this->settings('next-name')] == $this->settings('next-value') && ($current_step + 1) < count( $this->steps )  )
                 $_SESSION[$this->settings('form-name').'-step']++;
 
             return true;
-        }
+        }        
     }
 
-    /**
-     * Remove a given field from a given group
-     * @param  string $field Var name of field to remove
-     * @param  string $group Name of group to remove
-     * @return bool
-     */
-    public function remove_from_group( $field, $group ){
-
-        $group_var = Bosch::slugify($group);
-        
-        if ( !array_key_exists($group_var, $this->groups) ){
-            $this->bosch_error('Group <code>'.$group_var.'</code> does not exist. Cannot remove from this group.');
-            return false;
-        }
-
-        $group = $this->groups[$group_var];
-        $success = $group->remove_field($field);
-
-        if ( $success ){
-
-            foreach ($this->steps as $step) {
-                foreach ($this->groups as $group) {
-                    if ( $group->var == $group_var ){
-                        $step->remove_field_from_step_group($field, $group_var);
-                    }
-                }
+    public function is_field_in_group( $field, array $current_groups ){
+        foreach ($current_groups as $current_group) {
+            if ( in_array($field, $this->groups[$current_group]['fields'] ) ){
+                return true;
             }
-
-            $this->fields[$field]->validate = str_replace('required', '', $this->fields[$field]->validate);
-            $this->fields[$field]->validate = str_replace('||', '|', $this->fields[$field]->validate);
-
-            return true;
         }
 
-        $this->bosch_error('Field <code>'.$field.'</code> does not exist in group <code>'.$group_var.'</code>. Cannot remove from group.');
-        return false;        
-
-    }
+        return false;
+    } 
 
     /**
      * Public method to manually add an error to a form field
@@ -418,12 +411,12 @@ class Bosch {
     public function set_error( $field, $message ){
 
         if ( !array_key_exists($field, $this->fields) ){
-            $this->bosch_error( 'Cannot call <code>set_error</code> on non-existant field <code>'.$field.'</code>' );
+            Bosch::error( 'Cannot call <code>set_error</code> on non-existant field <code>'.$field.'</code>' );
             return false;
         }
 
         $this->errors[$field] = $message;
-        $this->fields[$field]->error = $message;
+        $this->fields[$field]->error['message'] = $message;
         return true;
     }
 
@@ -432,12 +425,11 @@ class Bosch {
      * @return bool
      */
     public function reset(){
+
         $_SESSION[$this->settings('form-name').'-step'] = 0;
         unset($_SESSION[$this->settings('form-name').'-storage']);
         $this->data = array();
-        foreach ($this->fields as $field) {
-            unset($field->value);
-        }
+
         return true;
     }
 
@@ -472,35 +464,6 @@ class Bosch {
 
         return $found;
     }
-
-    /**
-     * Validates the user has input a value for required checkbox
-     * Requires its own function because checkbox values are stored in a sub-array to allow for multiple checks
-     *
-     * @param array $post_data The $_POST['form'] array
-     * @return array
-     */
-    private function validate_required_checkboxes( $post_data ){
-
-        $missing = array();
-        $fields = $this->steps[$_SESSION[$this->settings('form-name').'-step']]->get_fields();
-
-        if ( !isset($post_data) || is_null($post_data) ){
-            $post_data = array();
-        }
-
-        foreach ($fields as $field) {
-            if ( $field->type == 'checkbox' || $field->type == 'checkbox-inline' || $field->type == 'radio' || $field->type =='radio-inline' ){
-                if ( !array_key_exists($field->var, $post_data) && strstr($field->validate, 'required') ){
-                    $var = ucfirst(str_replace('_', ' ', $field->var));
-                    $missing[$field->var] = 'The '.$var.' field is required';
-                }
-            }
-        }
-
-        return $missing;
-    }
-
 
     /**
      * Check if the honeypot field has data
@@ -539,6 +502,21 @@ class Bosch {
      */
     public function output(){
 
+        $this->output_form_header();
+
+        echo '<div class="row">';
+    
+            $this->output_step($_SESSION[$this->settings('form-name').'-step']);
+            $this->output_buttons();
+
+        echo '</div>
+        </form>';
+
+        return true;
+    }
+
+    public function output_form_header(){
+
         //get form type from settings
         switch ( $this->settings('form-type') ){
             case 'block' : $class = ''; break;
@@ -549,17 +527,7 @@ class Bosch {
 
         $this->has_file_inputs() ? $enc = 'enctype="multipart/form-data"' : $enc = '';
 
-        echo '
-        <form id="'.$this->settings('form-name').'" role="form" class="bosch-form step-'.$_SESSION[$this->settings('form-name').'-step'].' '.$class.'" method="post" '.$enc.'>
-            <div class="row">';
-    
-            $this->output_step($_SESSION[$this->settings('form-name').'-step']);
-            echo $this->get_buttons();
-
-        echo '</div>
-        </form>';
-
-        return true;
+        echo '<form id="'.$this->settings('form-name').'" role="form" class="bosch-form step-'.$_SESSION[$this->settings('form-name').'-step'].' '.$class.'" method="post" '.$enc.'>';
     }
 
     public function output_step( $step_num ){
@@ -603,15 +571,15 @@ class Bosch {
                 foreach ( $group['fields'] as $field_var ){
 
                     try{
-                         if ( !array_key_exists($field_var, $group['fields']) ){
-                            throw new Exception('Invalid Field <code>'.$field.'</code> in Group <code>'.$group['name'].'</code>');
+                         if ( !array_key_exists($field_var, $this->fields) ){
+                            throw new Exception('Invalid Field <code>'.$field_var.'</code> in Group <code>'.$group['name'].'</code>');
                          }
 
                          $this->fields[$field_var]->output_field();
 
                     }
                     catch (Exception $e) {
-                        Bosch::bosch_exception( $e );                   
+                        Bosch::exception( $e );                   
                     }
                 }
 
@@ -619,6 +587,21 @@ class Bosch {
             </div>
         </div>'.
         $html_after;
+    }
+
+    /**
+     * Merge all the data into a single array
+     * @return array Associate array of saved values
+     */
+    public function get_all_data(){
+
+        $values = array();
+
+        foreach ($this->steps as $k => $v) {
+            $values = array_merge( $values, $this->data[$k]);
+        }
+
+        return $values;
     }
 
     public function get_field( $field ){
@@ -629,7 +612,7 @@ class Bosch {
             return true;
         }
 
-        $this->bosch_error('No field found with var <code>'.$field.'</code>');
+        Bosch::error('No field found with var <code>'.$field.'</code>');
         return false;
 
     }
@@ -644,7 +627,8 @@ class Bosch {
             return false;
 
         if ( isset($this->errors) && !empty($this->errors) ){
-            echo '<div class="alert alert-danger">';
+            echo '
+            <div class="alert alert-danger">'.$this->settings('error-header');
                 foreach ($this->errors as $error) {
                     echo $error . '<br />';
                 }
@@ -654,7 +638,7 @@ class Bosch {
         }
     }
 
-    public function get_button($button){
+    public function output_button($button){
         echo $this->buttons[$button]->get_html();
     }
     
@@ -662,7 +646,7 @@ class Bosch {
      * Get HTML for the buttons
      * @return string
      */
-    public function get_buttons(){
+    public function output_buttons(){
 
         $btns = '';
 
@@ -698,7 +682,7 @@ class Bosch {
             
             $btns .= '
             <div class="col-md-6">';
-                if ( $this->steps[$_SESSION[$this->settings('form-name').'-step']]->prev === true && $_SESSION[$this->settings('form-name').'-step'] != 0 ){
+                if ( $this->steps[$_SESSION[$this->settings('form-name').'-step']]['prev'] === true && $_SESSION[$this->settings('form-name').'-step'] != 0 ){
                     $btns .= $this->buttons['prev']->get_html();
                 }
             $btns .= '
@@ -732,7 +716,7 @@ class Bosch {
                 }
             }
             else{
-                if ( $this->steps[$_SESSION[$this->settings('form-name').'-step']]->next === true && ($_SESSION[$this->settings('form-name').'-step'] + 1) !== count( $this->steps ) ){
+                if ( $this->steps[$_SESSION[$this->settings('form-name').'-step']]['next'] === true && ($_SESSION[$this->settings('form-name').'-step'] + 1) !== count( $this->steps ) ){
                     $btns .= $this->buttons['next']->get_html();
                 }
             }
@@ -740,7 +724,7 @@ class Bosch {
             $btns .= $post;
         }
 
-        return $btns;
+        echo $btns;
     }
 
     /**
@@ -756,7 +740,7 @@ class Bosch {
      * @param object $e The exception
      * @return bool
      */
-    public static function bosch_exception ( $e ){
+    public static function exception ( $e ){
         echo '
         <div class="alert alert-danger bosch-exception">
             Exception: <strong>'.$e->getMessage().'</strong><br />
@@ -772,9 +756,28 @@ class Bosch {
      * @param string $text The error text
      * @return bool
      */
-    public static function bosch_error ( $text ){
+    public static function error ( $text ){
         echo '
         <div class="alert alert-danger bosch-error">
+           '.$text.'
+        </div>';
+
+        return true;
+    }
+
+    /**
+     * Output a warning message if debug is on
+     * @param string $text The warning text
+     * @return bool
+     */
+    public static function warning ( $text ){
+
+        if ( !self::settings('debug') ){
+            return false;
+        }
+
+        echo '
+        <div class="alert alert-warning bosch-error">
            '.$text.'
         </div>';
 
@@ -900,6 +903,64 @@ class Bosch {
 
         return $values;
     }
+
+    /**
+     * Sanitize the input data
+     * 
+     * @access public
+     * @param  array $data
+     * @return array
+     */
+    public static function sanitize(array $input, $fields = NULL, $utf8_encode = true)
+    {
+        $magic_quotes = (bool)get_magic_quotes_gpc();
+        
+        if(is_null($fields))
+        {
+            $fields = array_keys($input);
+        }
+
+        foreach($fields as $field)
+        {
+            if(!isset($input[$field]))
+            {
+                continue;
+            }
+            else
+            {
+                $value = $input[$field]; 
+                
+                if(is_string($value))
+                {
+                    if($magic_quotes === TRUE)
+                    {
+                        $value = stripslashes($value);
+                    }
+                    
+                    if(strpos($value, "\r") !== FALSE)
+                    {
+                        $value = trim($value);
+                    }
+                    
+                    if(function_exists('iconv') && function_exists('mb_detect_encoding') && $utf8_encode)
+                    {
+                        $current_encoding = mb_detect_encoding($value);
+                        
+                        if($current_encoding != 'UTF-8' && $current_encoding != 'UTF-16') {
+                            $value = iconv($current_encoding, 'UTF-8', $value);
+                        }
+                    }
+                    
+                    $value = filter_var($value, FILTER_SANITIZE_STRING);
+                }
+                
+                $input[$field] = $value;
+            }
+        }
+        
+        return $input;      
+    }
+
 
 }
 

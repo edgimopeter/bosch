@@ -8,7 +8,7 @@ array(
       'name'        => 'Name', 
       'type'        => 'text',
       'desc'        => 'Please enter your name',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string',
       'placeholder' => 'Enter your name'
       ),
@@ -18,7 +18,7 @@ array(
       'name'        => 'Email', 
       'type'        => 'email',
       'desc'        => 'Please enter your email address',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string',
       'extras'      => ''
       ),
@@ -28,7 +28,7 @@ array(
       'name'        => 'Password', 
       'type'        => 'password',
       'desc'        => 'Please enter your password',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'sanitize_string',
       'extras'      => 'no-save'
       ),
@@ -38,7 +38,7 @@ array(
       'name'        => 'Date', 
       'type'        => 'date',
       'desc'        => 'Please pick a date',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       array(
@@ -46,7 +46,7 @@ array(
       'name'        => 'month', 
       'type'        => 'month',
       'desc'        => 'Please pick a month',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       array(
@@ -54,7 +54,7 @@ array(
       'name'        => 'year', 
       'type'        => 'year',
       'desc'        => 'Please pick a year',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       array(
@@ -62,7 +62,7 @@ array(
       'name'        => 'money', 
       'type'        => 'money',
       'desc'        => 'Please pick a money',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       //Text variant - time
@@ -71,7 +71,7 @@ array(
       'name'        => 'Time', 
       'type'        => 'time',
       'desc'        => 'Please pick a time',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       array(
@@ -79,7 +79,7 @@ array(
       'name'        => 'hour', 
       'type'        => 'hour',
       'desc'        => 'Please pick a hour',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       array(
@@ -87,7 +87,7 @@ array(
       'name'        => 'minute', 
       'type'        => 'minute',
       'desc'        => 'Please pick a minute',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       //Text variant - amount
@@ -96,7 +96,7 @@ array(
       'name'        => 'Amount', 
       'type'        => 'number',
       'desc'        => 'How many?',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       //Text variant - URL
@@ -105,7 +105,7 @@ array(
       'name'        => 'Website', 
       'type'        => 'url',
       'desc'        => 'Homepage',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       //Text variant - search
@@ -123,7 +123,7 @@ array(
       'name'        => 'Phone Number', 
       'type'        => 'tel',
       'desc'        => 'Type your phone number',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
       //Text variant - phone
@@ -132,16 +132,69 @@ array(
       'name'        => 'Background Color', 
       'type'        => 'color',
       'desc'        => 'Choose a color',
-      'validate'    => 'required',
+      'validate'    => '',
       'filter'      => 'trim|sanitize_string'
       ),
-      //Text variant - phone
       array(
-      'var'         => 'file', 
-      'name'        => 'File Upload', 
-      'type'        => 'file',
-      'desc'        => '',
+      'var'         => 'radio', 
+      'name'        => 'Required Choices', 
+      'type'        => 'radio',
+      'desc'        => 'Choose an option',
+      'validate'    => 'required',
+      'options' => array('yes' => 'Yes', 'no' => 'No'),
+      'filter'      => 'trim|sanitize_string'
+      ),
+      array(
+      'var'         => 'optional-radio', 
+      'name'        => 'Optional Choices with Default Set', 
+      'type'        => 'radio',
+      'desc'        => 'Choose an option',
+      'validate'    => 'required',
+      'options' => array('yes' => 'Yes', 'no' => 'No'),
+      'default' => 'no',
+      'filter'      => 'trim|sanitize_string'
+      ),
+      array(
+      'var'         => 'checkbox', 
+      'name'        => 'Required Choices', 
+      'type'        => 'checkbox',
+      'desc'        => 'Choose an option',
+      'validate'    => 'required',
+      'options' => array('required_yes' => 'Required Yes', 'required_no' => 'Required No'),
+      'filter'      => 'trim|sanitize_string'
+      ),
+      array(
+      'var'         => 'optional-checkbox', 
+      'name'        => 'Optional Choices with Default Set', 
+      'type'        => 'checkbox',
+      'desc'        => 'Choose an option',
       'validate'    => '',
-      'filter'      => ''
-      )
+      'options' => array('option_yes' => 'Optional Yes', 'option_no' => 'Optional No'),
+      'default' => 'no',
+      'filter'      => 'trim|sanitize_string'
+      ),
+      array(
+      'var'         => 'select', 
+      'name'        => 'Required Choices', 
+      'type'        => 'select',
+      'desc'        => 'Choose an option',
+      'validate'    => 'required',
+      'placeholder' => '-- Custom Text Here --',
+      'options' => array('yes' => 'Yes', 'no' => 'No'),
+      'filter'      => 'trim|sanitize_string'
+      ),
+      array(
+      'var'         => 'multiselect', 
+      'name'        => 'Multiple Choices', 
+      'type'        => 'select',
+      'desc'        => 'Choose an option',
+      'validate'    => '',
+      'extras' => 'multiple',
+      'placeholder' => '-- Custom Text Here --',
+      'options' => array('yes' => 'Yes', 'no' => 'No'),
+      'filter'      => 'trim|sanitize_string'
+      ),
+
 );
+
+?>
