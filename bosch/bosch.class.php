@@ -341,7 +341,7 @@ class Bosch {
 
         if ( !empty($_POST['form']) ){
 
-            $_POST['form'] = Bosch::sanitize($_POST['form']);
+            $_POST['form'] = $this->sanitize($_POST['form']);
 
             foreach ( $this->fields as $k => $v ) {
                 //only work with fields in the current step/group
@@ -415,8 +415,15 @@ class Bosch {
             return false;
         }
 
-        $this->errors[$field] = $message;
-        $this->fields[$field]->error['message'] = $message;
+        //if a <span> is present, convert it to a link like normal errors
+        if ( strstr($message, '<span>') ){
+            preg_match('/<span>(.*?)<\/span>/s', $message, $matches);
+            $pretty = $matches[1];
+            $message = str_replace('<span>'.$pretty.'</span>', '<a class="alert-link" href="#'.$field.'" title="'.$pretty.'">'.$pretty.'</a>', $message);
+        }
+
+        $this->fields[$field]->errors['message'] = $message;
+
         return true;
     }
 
@@ -911,23 +918,23 @@ class Bosch {
      * @param  array $data
      * @return array
      */
-    public static function sanitize(array $input, $fields = NULL, $utf8_encode = true)
-    {
+    private function sanitize(array $input, $fields = NULL, $utf8_encode = true){
+
         $magic_quotes = (bool)get_magic_quotes_gpc();
         
-        if(is_null($fields))
-        {
+        if(is_null($fields)){            
             $fields = array_keys($input);
         }
 
-        foreach($fields as $field)
-        {
-            if(!isset($input[$field]))
-            {
+        foreach($fields as $field){
+
+            //skip empty fields and wysiwyg
+            if ( !isset($input[$field]) || $this->fields[$field]->type === 'wysiwyg' ){
                 continue;
             }
-            else
-            {
+
+            else{
+
                 $value = $input[$field]; 
                 
                 if(is_string($value))

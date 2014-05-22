@@ -194,6 +194,14 @@ array(
       'options' => array('yes' => 'Yes', 'no' => 'No'),
       'filter'      => 'trim|sanitize_string'
       ),
+       array(
+      'var'         => 'wysiwyg', 
+      'name'        => 'Lots of Text', 
+      'type'        => 'wysiwyg',
+      'desc'        => 'Rich test',
+      'validate'    => '',
+      'filter'      => 'trim'
+      ),
 
 );
 

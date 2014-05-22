@@ -267,6 +267,10 @@ class Bosch_Field{
                 </div>';
             break;
 
+            case 'wysiwyg' : echo '
+                <textarea id="'.$this->var.'" '.$extras.' class="bosch-wysiwyg '.$input_class.'" rows="'.$this->options.'" name="form['.$this->var.']">'.$field_value.'</textarea>';
+            break;
+
             case 'textarea' : echo '
                 <textarea id="'.$this->var.'" '.$extras.' class="'.$input_class.'" rows="'.$this->options.'" name="form['.$this->var.']">'.$field_value.'</textarea>';
             break;
@@ -524,7 +528,8 @@ class Bosch_Field{
     public function get_readable_error(){
 
         $param = $this->errors['param'];
-        $field = '<a class="alert-link" href="#'.$this->var.'" title="'.$this->name.'">'.$this->var.'</a>';
+        $pretty = ucfirst(str_replace('_', ' ',$this->var));
+        $field = '<a class="alert-link" href="#'.$this->var.'" title="'.$pretty.'">'.$pretty.'</a>';
 
         switch($this->errors['rule']) {
 

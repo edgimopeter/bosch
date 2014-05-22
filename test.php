@@ -13,7 +13,7 @@ $report_form->settings('honeypot', 'false');
 $fields = array(
     array(
 		'var'      => 'patient_id', 
-		'name'     => 'Patient identifier ', 
+		'name'     => 'Patient identifier', 
 		'type'     => 'text',
 		'extras' => 'readonly',
 		'filter'   => 'trim|sanitize_string',
@@ -116,8 +116,8 @@ $report_form->setup( $fields, $groups, $steps, $buttons );
 
 if ( $report_form->has_been_submitted() ){
 
-    if ( $_POST['form']['unit_id'] < 1 ){
-        $report_form->set_error('unit_id', 'Unit ID must be greater than zero');
+    if ( isset($_POST['form']['unit_id']) && $_POST['form']['unit_id'] < 1 ){
+        $report_form->set_error('unit_id', '<span>Unit ID</span> must be greater than zero');
     }
 
     $report_form->process();
