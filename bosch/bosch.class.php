@@ -161,7 +161,7 @@ class Bosch {
 
         }
         catch (Exception $e) {
-            $this->bosch_exception( $e );                   
+            Bosch::exception( $e );                   
         }
     }
 
@@ -435,7 +435,11 @@ class Bosch {
 
         $_SESSION[$this->settings('form-name').'-step'] = 0;
         unset($_SESSION[$this->settings('form-name').'-storage']);
-        $this->data = array();
+        unset($this->data);
+
+        foreach ($this->fields as $field) {
+            $field->default = '';
+        }
 
         return true;
     }
@@ -550,7 +554,7 @@ class Bosch {
 
         $html_before = isset($group['html_before']) ? $group['html_before'] : '';
         $html_after  = isset($group['html_after']) ? $group['html_after'] : '';
-        $width       = isset($group['width']) ? $group['html_before'] : 'col-md-12';
+        $width       = isset($group['width']) ? $group['width'] : 'col-md-12';
         $desc        = isset($group['desc']) ? $group['desc'] : '';
         $hide_name   = isset($group['hide_name']) ? $group['hide_name'] : false;
 

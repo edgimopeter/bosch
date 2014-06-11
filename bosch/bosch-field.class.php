@@ -188,7 +188,7 @@ class Bosch_Field{
         isset($this->hide_label) && $this->hide_label === true ? $label_class = 'sr-only' : $label_class = '';
 
         //hide the label if the global setting is true
-        Bosch::settings('hide-labels') === true ? $label_class = 'sr-only' : $label_class = '';
+        Bosch::settings('hide-labels') === true ? $label_class .= 'sr-only' : $label_class .= '';
 
         //if the field size is set, add it to the input class string
         isset($this->size) ? $input_class .= ' input-'.$this->size : $input_class .= '';
