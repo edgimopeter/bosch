@@ -938,7 +938,7 @@ class Bosch {
         foreach($fields as $field){
 
             //skip empty fields and wysiwyg
-            if ( !isset($input[$field]) || $this->fields[$field]->type === 'wysiwyg' ){
+            if ( !isset($input[$field]) ){
                 continue;
             }
 
