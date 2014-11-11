@@ -185,7 +185,7 @@ class Bosch_Field{
         isset($this->placeholder) ? $placeholder = $this->placeholder : $placeholder = '';
 
         //hide the label if defined by the field variable
-        isset($this->hide_label) && $this->hide_label === true ? $label_class = 'sr-only' : $label_class = '';
+        isset($this->hide_label) && $this->hide_label === true || $this->hide_label === 'true' ? $label_class = 'sr-only' : $label_class = '';
 
         //hide the label if the global setting is true
         Bosch::settings('hide-labels') === true ? $label_class .= 'sr-only' : $label_class .= '';

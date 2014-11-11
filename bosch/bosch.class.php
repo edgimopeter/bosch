@@ -136,6 +136,7 @@ class Bosch {
         }
 
         $_SESSION[$this->settings('form-name').'-last_activity'] = time();
+        session_write_close();
     }
 
     /**
@@ -231,7 +232,7 @@ class Bosch {
             }
             else{
 
-                $group['fields'] = array_combine(explode('|', $group['fields']), explode('|', $group['fields']));
+                $group['fields'] = array_combine(explode('|', trim($group['fields'])), explode('|', trim($group['fields'])));
 
                 $this->groups[$group['var']] = $group;
 
@@ -390,6 +391,8 @@ class Bosch {
             if ( isset($_POST[$this->settings('next-name')]) && $_POST[$this->settings('next-name')] == $this->settings('next-value') && ($current_step + 1) < count( $this->steps )  )
                 $_SESSION[$this->settings('form-name').'-step']++;
 
+            session_write_close();
+
             return true;
         }        
     }
@@ -441,6 +444,8 @@ class Bosch {
         foreach ($this->fields as $field) {
             $field->default = '';
         }
+
+        session_write_close();
 
         return true;
     }
